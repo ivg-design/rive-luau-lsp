@@ -1,0 +1,30 @@
+{
+  "hidesExplorerArrows": false,
+  "iconDefinitions": {
+    "_luau": {
+      "iconPath": "./luau.svg"
+    },
+    "_file": {
+      "iconPath": "./file.svg"
+    },
+    "_folder": {
+      "iconPath": "./folder.svg"
+    },
+    "_folder_open": {
+      "iconPath": "./folder-open.svg"
+    }
+  },
+  "file": "_file",
+  "folder": "_folder",
+  "folderExpanded": "_folder_open",
+  "folderNames": {},
+  "folderNamesExpanded": {},
+  "fileExtensions": {
+    "luau": "_luau",
+    "lua": "_luau"
+  },
+  "fileNames": {},
+  "languageIds": {
+    "luau": "_luau"
+  }
+}

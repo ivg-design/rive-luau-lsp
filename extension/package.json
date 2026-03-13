@@ -1,0 +1,86 @@
+{
+  "name": "rive-luau",
+  "displayName": "Rive Luau",
+  "description": "Language server for Rive's Luau scripting environment — rich tooltips, autocomplete, diagnostics, and IntelliSense for the Rive scripting API.",
+  "version": "1.0.1",
+  "publisher": "IVGDesign",
+  "icon": "icon.png",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Linters"
+  ],
+  "activationEvents": [
+    "onLanguage:luau"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "luau",
+        "aliases": ["Luau", "luau"],
+        "extensions": [".luau"],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./icons/luau.svg",
+          "dark": "./icons/luau.svg"
+        }
+      }
+    ],
+    "iconThemes": [
+      {
+        "id": "rive-luau-icons",
+        "label": "Rive Luau Icons",
+        "path": "./icons/file-icon-theme.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "luau",
+        "scopeName": "source.luau",
+        "path": "./syntaxes/Luau.tmLanguage.json"
+      },
+      {
+        "scopeName": "markdown.luau.codeblock",
+        "path": "./syntaxes/codeblock.json",
+        "injectTo": ["text.html.markdown"],
+        "embeddedLanguages": {
+          "meta.embedded.block.luau": "luau"
+        }
+      }
+    ],
+    "configuration": {
+      "title": "Rive Luau",
+      "properties": {
+        "rive-luau.trace.server": {
+          "type": "string",
+          "enum": ["off", "messages", "verbose"],
+          "default": "off",
+          "description": "Traces the communication between VS Code and the Rive Luau language server."
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.0"
+  },
+  "attribution": {
+    "luau-lsp": {
+      "name": "Luau Language Server",
+      "author": "JohnnyMorganz",
+      "url": "https://github.com/JohnnyMorganz/luau-lsp",
+      "license": "MIT",
+      "description": "This extension is built on the luau-lsp open source language server."
+    },
+    "luau": {
+      "name": "Luau",
+      "author": "Roblox Corporation",
+      "url": "https://github.com/luau-lang/luau",
+      "license": "MIT",
+      "description": "Luau is a fast, small, safe, gradually typed embeddable scripting language derived from Lua."
+    }
+  }
+}
