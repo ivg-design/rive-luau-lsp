@@ -39,7 +39,148 @@ multiply = darken, screen = lighten, overlay = contrast boost."
 
 ---
 
-## Installation
+## CLI Usage (for agents and automation)
+
+The repo includes standalone CLI tools for type checking and static analysis — no VS Code required. Use these from scripts, CI pipelines, or AI coding agents.
+
+### Quick Start
+
+```bash
+git clone https://github.com/ivg-design/rive-luau-lsp.git
+cd rive-luau-lsp
+
+# Analyze a single file
+bin/rive-luau-analyze path/to/script.luau
+
+# Analyze an entire directory
+bin/rive-luau-analyze path/to/effects/
+
+# Start the LSP server (for editor/agent integration via stdio)
+bin/rive-luau-lsp
+```
+
+### `rive-luau-analyze` — Static Analysis
+
+Runs type checking, linting, and diagnostics on Rive Luau files. Automatically loads the complete Rive API type definitions. Exit code 0 means no errors.
+
+```bash
+# Check a script for type errors
+bin/rive-luau-analyze effects/Glassifier/Glassifier.luau
+
+# Check all scripts in a directory (respects .luaurc if present)
+bin/rive-luau-analyze effects/
+
+# Pass additional luau-lsp flags
+bin/rive-luau-analyze myScript.luau --formatter=plain
+```
+
+### `rive-luau-lsp` — Language Server
+
+Starts the full language server over stdio with Rive definitions and documentation pre-loaded. Connect from any LSP-compatible client: Neovim, Emacs, Helix, Zed, or an AI agent.
+
+```bash
+# Start LSP server
+bin/rive-luau-lsp
+
+# With additional flags
+bin/rive-luau-lsp --flag:LuauSomeFlag=true
+```
+
+### Agent Integration Example
+
+An AI coding agent can use the analyze tool to validate Rive Luau code:
+
+```bash
+# After generating or modifying a script, validate it:
+result=$(bin/rive-luau-analyze generated_script.luau 2>&1)
+if [ $? -ne 0 ]; then
+    echo "Type errors found:"
+    echo "$result"
+    # Agent can fix errors and retry
+fi
+```
+
+---
+
+## AI Agent Integration
+
+### Claude Code / Claude Skills
+
+Add this to your `CLAUDE.md` or project instructions to give Claude access to the Rive Luau LSP:
+
+```markdown
+## Rive Luau LSP
+
+A local language server and type checker for Rive Luau scripting is available.
+
+### Type Checking
+Before delivering any Rive Luau script, validate it:
+```bash
+/path/to/rive-luau-lsp/bin/rive-luau-analyze script.luau
+```
+Exit code 0 = no errors. Non-zero = type errors found in stderr output.
+
+### Type Definitions
+The complete Rive API type definitions are at:
+`/path/to/rive-luau-lsp/definitions/rive-globals.d.luau`
+
+Read this file to understand all available types, methods, and properties
+before writing Rive Luau code. Every type has educational documentation
+in `---` doc comments.
+
+### Standard Library Docs
+Educational documentation for all Luau standard library functions (math,
+string, table, etc.) is at:
+`/path/to/rive-luau-lsp/definitions/luau-api-docs.json`
+
+### Workflow
+1. Read `rive-globals.d.luau` to understand available APIs
+2. Write the Rive Luau script
+3. Run `rive-luau-analyze` to validate — fix any errors
+4. Repeat until exit code 0
+```
+
+### OpenAI Codex / Custom GPT Skills
+
+Add this as a tool definition or system instruction:
+
+```markdown
+## Tool: rive_luau_typecheck
+
+You have access to a Rive Luau type checker at:
+  /path/to/rive-luau-lsp/bin/rive-luau-analyze
+
+Usage: Write the Luau script to a .luau file, then run:
+  bin/rive-luau-analyze <file.luau>
+
+The tool loads the complete Rive scripting API (Vector, Color, Path,
+Paint, Renderer, Mat2D, ViewModel, Context, and 40+ more types).
+
+If errors are returned, read the error messages, fix the script, and
+re-run until the tool returns exit code 0 with no errors.
+
+Reference file for all available APIs:
+  /path/to/rive-luau-lsp/definitions/rive-globals.d.luau
+```
+
+### Cursor / Windsurf / Other AI Editors
+
+Point your editor's LSP configuration to the Rive Luau language server:
+
+```json
+{
+  "luau": {
+    "command": "/path/to/rive-luau-lsp/bin/rive-luau-lsp",
+    "filetypes": ["luau"]
+  }
+}
+```
+
+This gives you the same autocomplete, hover docs, and diagnostics as the VS Code extension in any LSP-compatible editor.
+
+---
+
+## VS Code Extension
 
 ### From VSIX (recommended)
 
@@ -121,18 +262,26 @@ For a dedicated icon theme, open the Command Palette and select **"Preferences: 
 rive-luau-lsp/
 ├── README.md
 ├── CHANGELOG.md
-├── LICENSE                    # MIT
-├── ATTRIBUTION.md             # Credits to upstream projects
-└── extension/                 # VS Code extension source
-    ├── package.json           # Extension manifest
-    ├── extension.js           # Extension entry point
-    ├── icon.png               # Extension marketplace icon
+├── LICENSE                        # MIT
+├── ATTRIBUTION.md                 # Credits to upstream projects
+├── bin/
+│   ├── luau-lsp                   # Language server binary (macOS)
+│   ├── rive-luau-analyze          # CLI: static analysis & type checking
+│   └── rive-luau-lsp             # CLI: start LSP server (stdio)
+├── definitions/
+│   ├── rive-globals.d.luau        # Rive API type definitions (with docs)
+│   └── luau-api-docs.json         # Standard library documentation
+└── extension/                     # VS Code extension source
+    ├── package.json               # Extension manifest
+    ├── extension.js               # Extension entry point
+    ├── icon.png                   # Extension marketplace icon
+    ├── README.md                  # Marketplace page content
     ├── language-configuration.json
     ├── bin/
-    │   └── luau-lsp           # Language server binary (macOS)
+    │   └── luau-lsp               # Language server binary (bundled)
     ├── definitions/
-    │   ├── rive-globals.d.luau    # Rive API type definitions
-    │   └── luau-api-docs.json     # Standard library documentation
+    │   ├── rive-globals.d.luau    # Rive API type definitions (bundled)
+    │   └── luau-api-docs.json     # Standard library docs (bundled)
     ├── icons/
     │   ├── luau.svg               # File icon for .luau files
     │   ├── file-icon-theme.json   # Icon theme definition

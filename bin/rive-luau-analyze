@@ -1,0 +1,41 @@
+#!/bin/bash
+# Rive Luau static analysis — type checking, linting, and diagnostics
+#
+# Usage:
+#   rive-luau-analyze <file-or-directory> [--luaurc <path>]
+#
+# Examples:
+#   rive-luau-analyze myScript.luau
+#   rive-luau-analyze effects/
+#   rive-luau-analyze effects/Glassifier/Glassifier.luau --luaurc /path/to/.luaurc
+#
+# Exit code 0 = no errors, non-zero = errors found
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+LUAU_LSP="${SCRIPT_DIR}/luau-lsp"
+RIVE_DEFS="${REPO_DIR}/definitions/rive-globals.d.luau"
+RIVE_DOCS="${REPO_DIR}/definitions/luau-api-docs.json"
+
+if [ ! -x "${LUAU_LSP}" ]; then
+    echo "Error: luau-lsp binary not found at ${LUAU_LSP}"
+    echo "Make sure you've cloned the full repo or downloaded the binary."
+    exit 1
+fi
+
+if [ $# -eq 0 ]; then
+    echo "Usage: rive-luau-analyze <file-or-directory> [luau-lsp flags...]"
+    echo ""
+    echo "Runs luau-lsp static analysis with Rive type definitions."
+    echo ""
+    echo "Examples:"
+    echo "  rive-luau-analyze myScript.luau"
+    echo "  rive-luau-analyze effects/"
+    echo "  rive-luau-analyze . --formatter=plain"
+    exit 1
+fi
+
+exec "${LUAU_LSP}" analyze \
+    "--definitions=@rive=${RIVE_DEFS}" \
+    --no-flags-enabled \
+    "$@"
