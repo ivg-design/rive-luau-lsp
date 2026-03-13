@@ -1,0 +1,19 @@
+interface:
+  display_name: "Rive Luau LSP"
+  short_description: "Type checker and language server for Rive Luau scripting"
+  brand_color: "#C9C942"
+  default_prompt: "Validate my Rive Luau script"
+
+policy:
+  allow_implicit_invocation: true
+
+dependencies:
+  tools:
+    - type: "function"
+      value: "rive_luau_typecheck"
+      description: "Validate a Rive Luau script for type errors against the complete Rive scripting API"
+
+permissions:
+  file_system:
+    read: true
+    write: true

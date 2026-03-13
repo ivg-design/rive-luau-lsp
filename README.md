@@ -102,70 +102,45 @@ fi
 
 ---
 
-## AI Agent Integration
+## AI Agent Skills
 
-### Claude Code / Claude Skills
+Ready-to-install skill packages for AI coding agents. Each skill gives the agent access to the Rive Luau type checker, API reference, script patterns, and a validation workflow.
 
-Add this to your `CLAUDE.md` or project instructions to give Claude access to the Rive Luau LSP:
+### Claude Code
 
-```markdown
-## Rive Luau LSP
+Install by copying into your personal or project skills directory:
 
-A local language server and type checker for Rive Luau scripting is available.
-
-### Type Checking
-Before delivering any Rive Luau script, validate it:
 ```bash
-/path/to/rive-luau-lsp/bin/rive-luau-analyze script.luau
-```
-Exit code 0 = no errors. Non-zero = type errors found in stderr output.
+# Personal (available in all projects)
+cp -r skills/claude/rive-luau-lsp ~/.claude/skills/
 
-### Type Definitions
-The complete Rive API type definitions are at:
-`/path/to/rive-luau-lsp/definitions/rive-globals.d.luau`
-
-Read this file to understand all available types, methods, and properties
-before writing Rive Luau code. Every type has educational documentation
-in `---` doc comments.
-
-### Standard Library Docs
-Educational documentation for all Luau standard library functions (math,
-string, table, etc.) is at:
-`/path/to/rive-luau-lsp/definitions/luau-api-docs.json`
-
-### Workflow
-1. Read `rive-globals.d.luau` to understand available APIs
-2. Write the Rive Luau script
-3. Run `rive-luau-analyze` to validate — fix any errors
-4. Repeat until exit code 0
+# Project-level (available in one repo)
+cp -r skills/claude/rive-luau-lsp .claude/skills/
 ```
 
-### OpenAI Codex / Custom GPT Skills
+Then invoke with `/rive-luau-lsp` or let Claude auto-trigger when working with `.luau` files.
 
-Add this as a tool definition or system instruction:
+See [`skills/claude/rive-luau-lsp/SKILL.md`](skills/claude/rive-luau-lsp/SKILL.md)
 
-```markdown
-## Tool: rive_luau_typecheck
+### OpenAI Codex
 
-You have access to a Rive Luau type checker at:
-  /path/to/rive-luau-lsp/bin/rive-luau-analyze
+Install by copying into your user or project skills directory:
 
-Usage: Write the Luau script to a .luau file, then run:
-  bin/rive-luau-analyze <file.luau>
+```bash
+# Personal
+cp -r skills/codex/rive-luau-lsp ~/.agents/skills/
 
-The tool loads the complete Rive scripting API (Vector, Color, Path,
-Paint, Renderer, Mat2D, ViewModel, Context, and 40+ more types).
-
-If errors are returned, read the error messages, fix the script, and
-re-run until the tool returns exit code 0 with no errors.
-
-Reference file for all available APIs:
-  /path/to/rive-luau-lsp/definitions/rive-globals.d.luau
+# Project-level
+cp -r skills/codex/rive-luau-lsp .agents/skills/
 ```
 
-### Cursor / Windsurf / Other AI Editors
+Codex will auto-trigger the skill when working with Rive Luau scripts.
 
-Point your editor's LSP configuration to the Rive Luau language server:
+See [`skills/codex/rive-luau-lsp/SKILL.md`](skills/codex/rive-luau-lsp/SKILL.md) and [`skills/codex/rive-luau-lsp/agents/openai.yaml`](skills/codex/rive-luau-lsp/agents/openai.yaml)
+
+### Other LSP-Compatible Editors (Cursor, Windsurf, Neovim, etc.)
+
+Point your editor's LSP configuration to the language server:
 
 ```json
 {
@@ -175,8 +150,6 @@ Point your editor's LSP configuration to the Rive Luau language server:
   }
 }
 ```
-
-This gives you the same autocomplete, hover docs, and diagnostics as the VS Code extension in any LSP-compatible editor.
 
 ---
 
