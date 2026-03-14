@@ -59,7 +59,7 @@ Complete type definitions and documentation for:
 | **Core** | `Vector`, `Color`, `Mat2D` |
 | **Drawing** | `Path`, `Paint`, `Renderer`, `Gradient`, `PathMeasure`, `ContourMeasure`, `ImageSampler` |
 | **Scene** | `NodeData`, `NodeReadData`, `Artboard`, `Animation` |
-| **Data Binding** | `ViewModel`, `Property<T>`, `PropertyList`, `DataContext`, `Context` |
+| **Data Binding** | `ViewModel`, `Property<T>`, `PropertyList`, `DataContext`, `Context`, `Data` namespace |
 | **Assets** | `Image`, `Blob`, `AudioSource`, `AudioSound`, `Audio` |
 | **Script Protocols** | `Node<T>`, `Layout<T>`, `Converter<T,I,O>`, `PathEffect<T>`, `ListenerAction<T>`, `TransitionCondition<T>` |
 | **Events** | `PointerEvent` |

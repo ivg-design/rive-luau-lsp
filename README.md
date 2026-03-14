@@ -183,6 +183,7 @@ A modified build of [luau-lsp](https://github.com/JohnnyMorganz/luau-lsp) by Joh
 
 - **Ancestor-walk require resolution** — Rive resolves `require("lib/Module")` from the script root directory, not the file's directory. The LSP walks up parent directories to find the correct module, eliminating false "Module not found" errors.
 - **Local-only documentation** — All hover tooltips render locally without "Learn More" links to external websites.
+- **Data namespace type resolution** — `Input<Data.X>` resolves in type annotations via a namespace fallback system, matching Rive editor syntax. `Data.X.new()` returns a typed ViewModel instance with dynamic property access.
 
 ### Type Definitions (`definitions/rive-globals.d.luau`)
 
@@ -193,7 +194,7 @@ Complete Rive scripting API type definitions with educational documentation cove
 | **Core** | `Vector`, `Color`, `Mat2D` |
 | **Drawing** | `Path`, `Paint`, `Renderer`, `Gradient`, `PathMeasure`, `ContourMeasure`, `ImageSampler` |
 | **Scene** | `NodeData`, `NodeReadData`, `Artboard`, `Animation` |
-| **Data Binding** | `ViewModel`, `Property<T>`, `PropertyList`, `DataContext`, `Context` |
+| **Data Binding** | `ViewModel`, `Property<T>`, `PropertyList`, `DataContext`, `Context`, `Data` namespace |
 | **Assets** | `Image`, `Blob`, `AudioSource`, `AudioSound`, `Audio` |
 | **Script Protocols** | `Node<T>`, `Layout<T>`, `Converter<T,I,O>`, `PathEffect<T>`, `ListenerAction<T>`, `TransitionCondition<T>` |
 | **Data Values** | `DataValue`, `DataValueNumber`, `DataValueString`, `DataValueBoolean`, `DataValueColor` |
