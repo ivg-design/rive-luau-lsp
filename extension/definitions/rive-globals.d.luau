@@ -1,4 +1,4 @@
---#METADATA#{"CREATABLE_INSTANCES":[], "SERVICES":[]}
+--#METADATA#{"CREATABLE_INSTANCES":[],"SERVICES":[],"TYPE_NAMESPACE_FALLBACKS":{"Data":"__RiveDataViewModel"}}
 
 -- =============================================================================
 -- Rive Luau Type Definitions v2.0.0
@@ -2106,3 +2106,29 @@ declare function late(): any
 --- expect(result).never.is(nil)
 --- ```
 declare function expect(value: any): Expectation
+
+-- ==========================================================================
+-- Data namespace
+--
+-- The Rive editor auto-generates a `Data` global from ViewModel definitions
+-- in the .riv file. Each Data.X entry serves two roles:
+--   Value:  Data.DinoVm.new()          → creates a ViewModel instance
+--   Type:   Input<Data.DinoVm>         → typed ViewModel input binding
+--
+-- Because ViewModel schemas are per-file, the LSP cannot enumerate them.
+-- __RiveDataViewModel is registered as the namespace fallback for Data.*
+-- via TYPE_NAMESPACE_FALLBACKS metadata, resolved in lookupImportedType.
+-- ==========================================================================
+
+--- Fallback instance type for `Input<Data.X>` annotations.
+--- Provides typed ViewModel accessor methods plus dynamic property access.
+export type __RiveDataViewModel = ViewModel & {
+    [string]: any,
+}
+
+--- Constructor shape for `Data.X.new()` value calls.
+type __RiveDataConstructor = {
+    new: () -> __RiveDataViewModel,
+}
+
+declare Data: { [string]: __RiveDataConstructor }

@@ -2,6 +2,23 @@
 
 All notable changes to the Rive Luau LSP extension will be documented in this file.
 
+## [1.0.4] - 2026-03-14
+
+### Added
+- **Data namespace type resolution** — `Input<Data.X>` now resolves in type annotations, matching Rive editor syntax
+- `Data.X.new()` returns typed `__RiveDataViewModel` (ViewModel with dynamic property access)
+- `self.character:getNumber("x")` returns `PropertyNumber?` on Data inputs (ViewModel methods available)
+- Generic namespace fallback system via `TYPE_NAMESPACE_FALLBACKS` definitions metadata
+
+### LSP Modifications
+- New C++ modification (#4): `ImportedTypeNamespace` struct with `fallback` field in `Scope.h`
+- `lookupImportedType()` now checks namespace fallback when specific member not found
+- Metadata-driven `applyTypeNamespaceFallbacks()` — no hard-coded namespace strings in C++
+
+### Changed
+- `rive-globals.d.luau` updated with `__RiveDataViewModel`, `__RiveDataConstructor`, and `declare Data` types
+- Definitions metadata header now includes `TYPE_NAMESPACE_FALLBACKS`
+
 ## [1.0.3] - 2026-03-13
 
 ### Added

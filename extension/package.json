@@ -2,7 +2,7 @@
   "name": "rive-luau",
   "displayName": "Rive Luau",
   "description": "Language server for Rive's Luau scripting environment — rich tooltips, autocomplete, diagnostics, and IntelliSense for the Rive scripting API.",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "publisher": "IVGDesign",
   "icon": "icon.png",
   "license": "MIT",
