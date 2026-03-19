@@ -2,6 +2,15 @@
 
 All notable changes to the Rive Luau LSP extension will be documented in this file.
 
+## [1.0.7] - 2026-03-19
+
+### Fixed — Lint warnings now show as yellow (not red) in VS Code
+
+- **Reset lintErrors when forceStrictMode is active** — `.luaurc` `lintErrors: true` was promoting all lint warnings to `DiagnosticSeverity::Error` (red underlines), overriding the standard Luau behavior of yellow lint warnings. The Rive editor shows lint (LocalUnused, etc.) as warnings. Fix: `result.lintErrors = false` in `readConfigRec()` when `forceStrictMode = true`.
+
+### LSP Modifications
+- C++ mod #5c: `readConfigRec()` now sets `result.lintErrors = false` alongside `result.globals.clear()` and `result.mode = Strict` when `forceStrictMode = true`
+
 ## [1.0.6] - 2026-03-19
 
 ### Fixed — Complete Type Error Parity (all error classes)
