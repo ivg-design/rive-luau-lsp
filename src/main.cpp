@@ -250,6 +250,10 @@ int main(int argc, char** argv)
         .metavar("GLOB");
     analyze_command.add_argument("--base-luaurc").help("path to a .luaurc file which acts as the base default configuration").metavar("PATH");
     analyze_command.add_argument("--platform").help("platform-specific support features").choices("standard", "roblox");
+    analyze_command.add_argument("--force-strict-mode")
+        .help("force strict mode for all files, overriding .luaurc languageMode; also clears .luaurc globals (prevents anyType shadowing of definitions) and resets lintErrors to false")
+        .default_value(false)
+        .implicit_value(true);
     analyze_command.add_argument("--settings").help("path to LSP-style settings").metavar("PATH");
     analyze_command.add_argument("files").help("files to perform analysis on").remaining();
 

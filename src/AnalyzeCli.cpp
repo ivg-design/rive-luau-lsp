@@ -245,6 +245,7 @@ int startAnalyze(const argparse::ArgumentParser& program)
 {
     ReportFormat format = ReportFormat::Default;
     bool annotate = program.is_used("--annotate");
+    bool forceStrictMode = program.is_used("--force-strict-mode");
     auto sourcemapPath = program.present<std::string>("--sourcemap");
     auto definitionsPaths = processDefinitionsFilePaths(program);
     auto ignoreGlobPatterns = program.get<std::vector<std::string>>("--ignore");
@@ -334,6 +335,7 @@ int startAnalyze(const argparse::ArgumentParser& program)
 
     fileResolver.rootUri = Uri::file(*currentWorkingDirectory);
     fileResolver.client = &client;
+    fileResolver.forceStrictMode = forceStrictMode;
 
     if (auto platformArg = program.present("--platform"))
     {
