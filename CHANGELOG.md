@@ -2,6 +2,15 @@
 
 All notable changes to the Rive Luau LSP extension will be documented in this file.
 
+## [1.0.6] - 2026-03-19
+
+### Fixed — Complete Type Error Parity (all error classes)
+
+- **Clear .luaurc globals when forceStrictMode is active** — Globals listed in `.luaurc` (e.g., `Paint`, `Color`, `Vector`) were being typed as `any` by `Frontend::getModuleEnvironment`, silently suppressing all type errors on those identifiers even in strict mode. Fix: `result.globals.clear()` in `readConfigRec()` when `forceStrictMode = true`, so the definitions file's typed bindings are used directly without `any` overrides. This is the root cause of Error Class 1 (and/or string literal widening) not being caught in VS Code.
+
+### LSP Modifications
+- C++ mod #5b: `readConfigRec()` now calls `result.globals.clear()` alongside `result.mode = Strict` when `forceStrictMode = true`
+
 ## [1.0.5] - 2026-03-18
 
 ### Fixed — Type Error Parity with Rive Editor (3 of 4 error classes)
