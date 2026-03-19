@@ -153,7 +153,7 @@ std::optional<Luau::AutocompleteEntryMap> RobloxPlatform::completionCallback(
             return std::nullopt;
 
         Luau::AutocompleteEntryMap result;
-        for (auto& [enumName, _] : it->second)
+        for (auto& [enumName, _] : it->second.members)
             result.insert_or_assign(enumName, Luau::AutocompleteEntry{Luau::AutocompleteEntryKind::String,
                                                   workspaceFolder->frontend.builtinTypes->stringType, false, false, Luau::TypeCorrectKind::Correct});
 

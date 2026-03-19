@@ -823,5 +823,5 @@ void RobloxPlatform::mutateRegisteredDefinitions(Luau::GlobalTypes& globals, std
         else
             ++it;
     }
-    globals.globalScope->importedTypeBindings.emplace("Enum", enumTypes);
+    globals.globalScope->importedTypeBindings.emplace("Enum", Luau::Scope::ImportedTypeNamespace{enumTypes});
 }

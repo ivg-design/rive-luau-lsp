@@ -655,7 +655,8 @@ lsp::InitializeResult LanguageServer::onInitialize(const lsp::InitializeParams& 
     client->capabilities = params.capabilities;
     client->traceMode = params.trace;
 
-    // Set FFlags
+    // Set FFlags and read initialization options
+    bool forceStrictMode = false;
     if (params.initializationOptions.has_value())
     {
         try
@@ -674,6 +675,7 @@ lsp::InitializeResult LanguageServer::onInitialize(const lsp::InitializeParams& 
                         client->sendLogMessage(lsp::MessageType::Info, message);
                     });
             }
+            forceStrictMode = options.forceStrictMode;
         }
         catch (const json::exception& err)
         {
@@ -683,18 +685,36 @@ lsp::InitializeResult LanguageServer::onInitialize(const lsp::InitializeParams& 
 
     // Update the solver mode for null workspace after FFlags are configured
     nullWorkspace->frontend.setLuauSolverMode(FFlag::LuauSolverV2 ? Luau::SolverMode::New : Luau::SolverMode::Old);
+    if (forceStrictMode)
+    {
+        nullWorkspace->fileResolver.forceStrictMode = true;
+        nullWorkspace->fileResolver.defaultConfig.mode = Luau::Mode::Strict;
+    }
 
     // Configure workspaces
+    auto applyForceStrictMode = [forceStrictMode](std::shared_ptr<WorkspaceFolder>& wf)
+    {
+        if (forceStrictMode)
+        {
+            wf->fileResolver.forceStrictMode = true;
+            wf->fileResolver.defaultConfig.mode = Luau::Mode::Strict;
+        }
+    };
+
     if (params.workspaceFolders.has_value())
     {
         for (auto& folder : params.workspaceFolders.value())
         {
-            workspaceFolders.push_back(std::make_shared<WorkspaceFolder>(client, folder.name, folder.uri, defaultConfig));
+            auto wf = std::make_shared<WorkspaceFolder>(client, folder.name, folder.uri, defaultConfig);
+            applyForceStrictMode(wf);
+            workspaceFolders.push_back(wf);
         }
     }
     else if (params.rootUri.has_value())
     {
-        workspaceFolders.push_back(std::make_shared<WorkspaceFolder>(client, "$ROOT", params.rootUri.value(), defaultConfig));
+        auto wf = std::make_shared<WorkspaceFolder>(client, "$ROOT", params.rootUri.value(), defaultConfig);
+        applyForceStrictMode(wf);
+        workspaceFolders.push_back(wf);
     }
 
     isInitialized = true;

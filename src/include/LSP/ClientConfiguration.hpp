@@ -33,7 +33,7 @@ struct ClientTypesConfiguration
 {
     /// Whether Roblox-related definitions should be supported
     /// DEPRECATED: USE `platform.type` INSTEAD
-    bool roblox = true;
+    bool roblox = false;
     /// Any definition files to load globally
     std::unordered_map<std::string, std::string> definitionFiles{};
     /// A list of globals to remove from the global scope. Accepts full libraries or particular functions (e.g., `table` or `table.clone`)
@@ -264,7 +264,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(LSPPlatformConfig, {
 
 struct ClientPlatformConfiguration
 {
-    LSPPlatformConfig type = LSPPlatformConfig::Roblox;
+    LSPPlatformConfig type = LSPPlatformConfig::Standard;
 };
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ClientPlatformConfiguration, type);

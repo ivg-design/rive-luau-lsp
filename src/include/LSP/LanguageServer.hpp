@@ -29,8 +29,11 @@ inline lsp::PositionEncodingKind& positionEncoding()
 struct InitializationOptions
 {
     std::unordered_map<std::string, std::string> fflags{};
+    /// Force Luau strict mode for all files, overriding any .luaurc languageMode setting.
+    /// Used by the Rive Luau LSP to match the Rive editor's type checker behavior.
+    bool forceStrictMode = false;
 };
-NLOHMANN_DEFINE_OPTIONAL(InitializationOptions, fflags)
+NLOHMANN_DEFINE_OPTIONAL(InitializationOptions, fflags, forceStrictMode)
 
 class LanguageServer
 {

@@ -479,6 +479,10 @@ Luau::LoadDefinitionFileResult WorkspaceFolder::loadDefinitionFile(
     if (!FFlag::LuauSolverV2)
         types::registerDefinitions(frontend, frontend.globalsForAutocomplete, packageName, source);
 
+    types::applyTypeNamespaceFallbacks(frontend.globals, metadata);
+    if (!FFlag::LuauSolverV2)
+        types::applyTypeNamespaceFallbacks(frontend.globalsForAutocomplete, metadata);
+
     platform->mutateRegisteredDefinitions(frontend.globals, metadata);
     platform->mutateRegisteredDefinitions(frontend.globalsForAutocomplete, metadata);
 

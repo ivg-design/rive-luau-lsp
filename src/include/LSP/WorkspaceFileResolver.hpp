@@ -86,6 +86,10 @@ public:
 
     LSPPlatform* platform = nullptr;
 
+    /// When true, forces all files to be type-checked in strict mode regardless of .luaurc settings.
+    /// Used to match the Rive editor's type checker behavior (which enforces strict literal types).
+    bool forceStrictMode = false;
+
     // Currently opened files where content is managed by client
     mutable std::unordered_map<Uri, TextDocument, UriHash> managedFiles{};
 

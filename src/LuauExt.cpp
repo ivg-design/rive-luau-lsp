@@ -59,6 +59,28 @@ Luau::LoadDefinitionFileResult registerDefinitions(
     return frontend.loadDefinitionFile(globals, globals.globalScope, definitions, packageName, /* captureComments = */ true);
 }
 
+void applyTypeNamespaceFallbacks(Luau::GlobalTypes& globals, std::optional<nlohmann::json> metadata)
+{
+    if (!metadata || !metadata->contains("TYPE_NAMESPACE_FALLBACKS"))
+        return;
+
+    const auto& fallbacks = (*metadata)["TYPE_NAMESPACE_FALLBACKS"];
+    if (!fallbacks.is_object())
+        return;
+
+    for (auto it = fallbacks.begin(); it != fallbacks.end(); ++it)
+    {
+        if (!it.value().is_string())
+            continue;
+
+        const std::string namespaceName = it.key();
+        const std::string typeName = it.value().get<std::string>();
+
+        if (auto tf = globals.globalScope->lookupType(typeName))
+            globals.globalScope->importedTypeBindings[namespaceName].fallback = *tf;
+    }
+}
+
 using NameOrExpr = std::variant<std::string, Luau::AstExpr*>;
 
 // Converts an FTV and function call to a nice string

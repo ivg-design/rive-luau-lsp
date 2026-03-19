@@ -139,6 +139,51 @@ std::optional<Luau::ModuleInfo> LSPPlatform::resolveStringRequire(
     {
         fileUri = aliasedPath.value();
     }
+    // For bare requires (no ./ ../ @ prefix), if the file doesn't resolve from the
+    // current directory, walk up ancestor directories to find it. This supports
+    // environments like Rive where require("lib/X") resolves from the script root,
+    // not the file's directory.
+    else if (!requiredString.empty() && requiredString[0] != '.' && requiredString[0] != '@')
+    {
+        auto candidateUri = fileUri;
+        if (candidateUri.extension() != ".luau" && candidateUri.extension() != ".lua")
+            candidateUri.path += ".luau";
+
+        if (!candidateUri.exists())
+        {
+            auto ancestor = baseUri->parent();
+            while (ancestor)
+            {
+                // Stop at workspace root to avoid searching too far up
+                if (fileResolver->rootUri.isAncestorOf(*ancestor) || *ancestor == fileResolver->rootUri)
+                {
+                    auto candidate = ancestor->resolvePath(requiredString);
+                    auto candidateWithExt = candidate;
+                    if (candidateWithExt.extension() != ".luau" && candidateWithExt.extension() != ".lua")
+                        candidateWithExt.path += ".luau";
+
+                    if (candidateWithExt.exists())
+                    {
+                        fileUri = candidate;
+                        break;
+                    }
+
+                    // Also try .lua extension
+                    candidateWithExt = candidate;
+                    candidateWithExt.path += ".lua";
+                    if (candidateWithExt.exists())
+                    {
+                        fileUri = candidate;
+                        break;
+                    }
+
+                    ancestor = ancestor->parent();
+                }
+                else
+                    break;
+            }
+        }
+    }
 
     // Handle "init.luau" files in a directory
     if (fileUri.isDirectory())

@@ -105,16 +105,12 @@ std::optional<std::string> printDocumentation(const Luau::DocumentationDatabase&
         if (auto* basic = documentation->get_if<Luau::BasicDocumentation>())
         {
             result = basic->documentation;
-            if (!basic->learnMoreLink.empty())
-                result += "\n\n[Learn More](" + basic->learnMoreLink + ")";
             if (!basic->codeSample.empty())
                 result += "\n\n" + codeBlock("luau", basic->codeSample);
         }
         else if (auto* func = documentation->get_if<Luau::FunctionDocumentation>())
         {
             result = func->documentation;
-            if (!func->learnMoreLink.empty())
-                result += "\n\n[Learn More](" + func->learnMoreLink + ")";
             if (!func->codeSample.empty())
                 result += "\n\n" + codeBlock("luau", func->codeSample);
         }
@@ -133,8 +129,6 @@ std::optional<std::string> printDocumentation(const Luau::DocumentationDatabase&
         else if (auto* tbl = documentation->get_if<Luau::TableDocumentation>())
         {
             result = tbl->documentation;
-            if (!tbl->learnMoreLink.empty())
-                result += "\n\n[Learn More](" + tbl->learnMoreLink + ")";
             if (!tbl->codeSample.empty())
                 result += "\n\n" + codeBlock("luau", tbl->codeSample);
         }
@@ -533,6 +527,26 @@ std::optional<std::string> WorkspaceFolder::getDocumentationForTypeReference(con
     }
     else
     {
+        // First try looking up the type via scope to get its definition location
+        auto typeFun = scope->lookupType(typeName);
+        if (typeFun && typeFun->definitionLocation)
+        {
+            // Try the current module first
+            auto docs = printMoonwaveDocumentation(getComments(moduleName, *typeFun->definitionLocation));
+            if (!docs.empty())
+                return docs;
+
+            // For types from definition files, the comments are in the definition file's
+            // source module, not the user's file. Search all definition files.
+            for (const auto& [defModuleName, defState] : definitionsFileState)
+            {
+                auto defDocs = printMoonwaveDocumentation(getComments(defModuleName, *typeFun->definitionLocation));
+                if (!defDocs.empty())
+                    return defDocs;
+            }
+        }
+
+        // Fallback to the original lookupTypeLocation path
         auto typeLocation = lookupTypeLocation(*scope, typeName);
         if (!typeLocation)
             return std::nullopt;

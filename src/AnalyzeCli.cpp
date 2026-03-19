@@ -387,6 +387,7 @@ int startAnalyze(const argparse::ArgumentParser& program)
             return 1;
         }
 
+        auto definitionsMetadata = types::parseDefinitionsFileMetadata(*definitionsContents);
         auto loadResult = types::registerDefinitions(frontend, frontend.globals, packageName, *definitionsContents);
         if (!loadResult.success)
         {
@@ -405,7 +406,8 @@ int startAnalyze(const argparse::ArgumentParser& program)
             return 1;
         }
 
-        platform->mutateRegisteredDefinitions(frontend.globals, types::parseDefinitionsFileMetadata(*definitionsContents));
+        types::applyTypeNamespaceFallbacks(frontend.globals, definitionsMetadata);
+        platform->mutateRegisteredDefinitions(frontend.globals, definitionsMetadata);
     }
 
     if (sourcemapPath)

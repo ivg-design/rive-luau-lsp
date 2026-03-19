@@ -21,6 +21,8 @@ std::optional<nlohmann::json> parseDefinitionsFileMetadata(const std::string& de
 Luau::LoadDefinitionFileResult registerDefinitions(
     Luau::Frontend& frontend, Luau::GlobalTypes& globals, const std::string& packageName, const std::string& definitions);
 
+void applyTypeNamespaceFallbacks(Luau::GlobalTypes& globals, std::optional<nlohmann::json> metadata);
+
 using NameOrExpr = std::variant<std::string, Luau::AstExpr*>;
 
 // Converts a FTV and function call to a nice string

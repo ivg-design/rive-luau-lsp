@@ -262,6 +262,9 @@ const Luau::Config& WorkspaceFileResolver::readConfigRec(const Uri& uri, const L
         }
     }
 
+    if (forceStrictMode)
+        result.mode = Luau::Mode::Strict;
+
     return configCache[uri] = result;
 }
 
