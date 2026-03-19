@@ -2,6 +2,12 @@
 
 All notable changes to the Rive Luau LSP extension will be documented in this file.
 
+## [1.0.8] - 2026-03-19
+
+### Added — CLI --force-strict-mode flag for full parity in analyze mode
+
+- **`luau-lsp analyze --force-strict-mode`** — The analyze CLI now supports the same three overrides as the VS Code extension's `forceStrictMode` initialization option: strict mode, globals clearing (prevents anyType shadowing of definitions file), and lintErrors=false (lint stays as warnings). Usage: `luau-lsp analyze --flag:LuauSolverV2=true --force-strict-mode --definitions=@rive=rive-globals.d.luau file.luau`
+
 ## [1.0.7] - 2026-03-19
 
 ### Fixed — Lint warnings now show as yellow (not red) in VS Code
