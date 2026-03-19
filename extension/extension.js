@@ -24,7 +24,7 @@ function activate(context) {
       "lsp",
       `--definitions=@rive=${definitionsPath}`,
       `--docs=${docsPath}`,
-      "--no-flags-enabled",
+      "--flag:LuauSolverV2=true",
     ],
     transport: TransportKind.stdio,
   };
@@ -38,10 +38,8 @@ function activate(context) {
       platform: { type: "standard" },
       types: { roblox: false },
       sourcemap: { enabled: false },
-      fflags: {
-        enableByDefault: true,
-        sync: false,
-      },
+      forceStrictMode: true,
+      fflags: { LuauSolverV2: "true" },
     },
   };
 

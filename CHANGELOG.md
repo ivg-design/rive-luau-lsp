@@ -2,6 +2,19 @@
 
 All notable changes to the Rive Luau LSP extension will be documented in this file.
 
+## [1.0.5] - 2026-03-18
+
+### Fixed — Type Error Parity with Rive Editor (3 of 4 error classes)
+
+- **Enable LuauSolverV2** — switched from `--no-flags-enabled` to `--flag:LuauSolverV2=true`. The Rive editor's type checker runs with SolverV2; the LSP now does too. This alone fixes cross-module type identity mismatches (`FadeTrimData from '0-65973' vs '0-65967'`), generic arithmetic errors on untyped parameters (`sub<a,a>`), and table literal missing-field errors.
+- **Force strict mode** — added `forceStrictMode` initialization option (C++ mod #5: `WorkspaceFileResolver.forceStrictMode`). The LSP now overrides `.luaurc` `languageMode: nonstrict` to strict, matching the Rive editor's enforcement of string literal subtype checking. Fixes `and/or` expressions widening `"round" | "butt"` to `string`.
+- **Cleaned up broken fflags** — removed `enableByDefault`/`sync` non-FFlag keys from initializationOptions that were silently failing JSON type parsing.
+
+### LSP Modifications
+- C++ mod #5: `WorkspaceFileResolver.forceStrictMode` field — when true, overrides post-`.luaurc` config mode to `Luau::Mode::Strict` in `readConfigRec()` and resets `defaultConfig.mode`
+- `InitializationOptions.forceStrictMode` bool — parsed from client initialization options and applied to all workspace folders and the null workspace
+- Both changes are no-op when `forceStrictMode = false`, so upstream luau-lsp behavior is fully preserved
+
 ## [1.0.4] - 2026-03-14
 
 ### Added
