@@ -269,6 +269,9 @@ const Luau::Config& WorkspaceFileResolver::readConfigRec(const Uri& uri, const L
         // Without this, globals listed in .luaurc are bound to anyType (see Frontend::getModuleEnvironment),
         // which silently suppresses all type errors on those identifiers.
         result.globals.clear();
+        // Keep lint as warnings (not errors) regardless of .luaurc lintErrors setting.
+        // The Rive editor shows lint as yellow warnings; lintErrors:true would show them as red errors.
+        result.lintErrors = false;
     }
 
     return configCache[uri] = result;
