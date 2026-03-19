@@ -263,7 +263,13 @@ const Luau::Config& WorkspaceFileResolver::readConfigRec(const Uri& uri, const L
     }
 
     if (forceStrictMode)
+    {
         result.mode = Luau::Mode::Strict;
+        // Clear .luaurc globals so they don't shadow typed declarations from the definitions file.
+        // Without this, globals listed in .luaurc are bound to anyType (see Frontend::getModuleEnvironment),
+        // which silently suppresses all type errors on those identifiers.
+        result.globals.clear();
+    }
 
     return configCache[uri] = result;
 }
