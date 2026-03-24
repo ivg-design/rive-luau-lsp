@@ -2,6 +2,18 @@
 
 All notable changes to the Rive Luau LSP extension will be documented in this file.
 
+## [1.0.10] - 2026-03-24
+
+### Fixed — 100% type checking parity with Rive editor
+
+Full parity audit using TypeCheckProbe.luau: every line the Rive editor accepts, the LSP now accepts. Every line the Rive editor flags, the LSP now flags.
+
+- **Disable `forceStrictMode`** — The Rive editor does not use strict mode. `forceStrictMode: true` caused false positives (e.g., return type `Path` where `PathData` annotation exists). `LuauSolverV2` alone now handles and/or string literal narrowing correctly, making `forceStrictMode` unnecessary.
+- **Add Vector arithmetic metamethods** — `__add`, `__sub`, `__mul`, `__div`, `__unm`. Vector uses Luau's native vector type with built-in arithmetic, but the definitions didn't declare the metamethods, causing false "Operator could not be applied" errors.
+- **Add Mat2D `__mul` metamethod** — `mat * mat` (combine transforms) and `mat * vec` (transform point) now type-check correctly.
+- **Mark Vector instance methods as `@deprecated`** — `v:length()`, `v:distance()`, etc. Rive editor shows deprecation warnings recommending static form (`Vector.length(v)`). LSP now matches.
+- **Remove phantom `CommandType` global table** — Rive has no `CommandType` global; command types are string literals (`"moveTo"`, `"lineTo"`, etc.). The phantom `declare CommandType` caused the LSP to accept code that crashes at runtime.
+
 ## [1.0.9] - 2026-03-24
 
 ### Fixed — Path class missing `__len` operator

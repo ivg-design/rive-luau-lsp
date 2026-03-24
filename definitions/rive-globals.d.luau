@@ -37,21 +37,27 @@ declare class Vector
     y: number
     --- Access by index: `vec[1]` is x, `vec[2]` is y.
     [number]: number
-    --- **How far this point is from (0,0).** Same as `Vector.length(v)`.
+
+    -- Arithmetic operators (Luau native vector type)
+    function __add(self, other: Vector): Vector
+    function __sub(self, other: Vector): Vector
+    function __mul(self, scalar: number): Vector
+    function __div(self, scalar: number): Vector
+    function __unm(self): Vector
+
+    --- @deprecated Use `Vector.length(v)` instead.
     function length(self): number
-    --- Squared distance from origin. Faster than `length()` — use when comparing distances.
+    --- @deprecated Use `Vector.lengthSquared(v)` instead.
     function lengthSquared(self): number
-    --- **Get the direction** as a unit vector (length = 1). Same as `Vector.normalized(v)`.
+    --- @deprecated Use `Vector.normalized(v)` instead.
     function normalized(self): Vector
-    --- **How far away** another point is, in pixels.
+    --- @deprecated Use `Vector.distance(a, b)` instead.
     function distance(self, other: Vector): number
-    --- Squared distance to another point. Faster for comparisons.
+    --- @deprecated Use `Vector.distanceSquared(a, b)` instead.
     function distanceSquared(self, other: Vector): number
-    --- **Dot product** — measures how much two vectors point in the same direction.
-    --- Positive = same way, 0 = perpendicular, negative = opposite.
+    --- @deprecated Use `Vector.dot(a, b)` instead.
     function dot(self, other: Vector): number
-    --- **Smoothly blend** between this vector and another.
-    --- `t=0` = this vector, `t=0.5` = halfway, `t=1` = other vector.
+    --- @deprecated Use `Vector.lerp(from, to, t)` instead.
     function lerp(self, other: Vector, t: number): Vector
 end
 
@@ -249,6 +255,10 @@ declare class Mat2D
     ty: number
     --- Indexed access: mat[1] through mat[6] = xx, xy, yx, yy, tx, ty
     [number]: number
+
+    -- Operators: mat * mat (combine transforms), mat * vec (transform point)
+    function __mul(self, other: Mat2D | Vector): Mat2D | Vector
+
     --- Compute the inverse of this matrix. Returns nil if the matrix is singular (not invertible).
     --- ```lua
     --- local inv = mat:invert()
@@ -630,20 +640,14 @@ end
 --- - `"none"` — Empty/invalid command
 export type CommandType = "none" | "moveTo" | "lineTo" | "quadTo" | "cubicTo" | "close"
 
---- **Enum table for command type strings.** Use for comparing command types:
+--- **Compare command types using string literals directly:**
 --- ```lua
---- if cmd.type == CommandType.cubicTo then
+--- if cmd.type == "cubicTo" then
 ---     -- handle curve
 --- end
 --- ```
-declare CommandType: {
-    none: "none",
-    moveTo: "moveTo",
-    lineTo: "lineTo",
-    quadTo: "quadTo",
-    cubicTo: "cubicTo",
-    close: "close",
-}
+--- Note: There is no `CommandType` global table in Rive. Use string literals:
+--- `"moveTo"`, `"lineTo"`, `"quadTo"`, `"cubicTo"`, `"close"`, `"none"`.
 
 --- **One drawing instruction inside a path** — move, line, curve, or close.
 ---

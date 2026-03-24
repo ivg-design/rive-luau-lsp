@@ -38,7 +38,7 @@ function activate(context) {
       platform: { type: "standard" },
       types: { roblox: false },
       sourcemap: { enabled: false },
-      forceStrictMode: true,
+      forceStrictMode: false,
       fflags: { LuauSolverV2: "true" },
     },
   };
