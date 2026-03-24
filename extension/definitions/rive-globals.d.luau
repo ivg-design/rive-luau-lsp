@@ -715,6 +715,11 @@ export type PathData = {
 --- renderer:drawPath(path, myPaint)
 --- ```
 declare class Path
+    --- **Number of commands** currently in this path (moveTo, lineTo, cubicTo, close, etc).
+    --- ```lua
+    --- local count = #path
+    --- ```
+    function __len(self): number
     --- **Pick up the pen and place it at `point`** without drawing anything.
     --- This starts a new subpath. Always call this before lineTo/cubicTo.
     function moveTo(self, point: Vector): ()

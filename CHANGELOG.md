@@ -2,6 +2,12 @@
 
 All notable changes to the Rive Luau LSP extension will be documented in this file.
 
+## [1.0.9] - 2026-03-24
+
+### Fixed — Path class missing `__len` operator
+
+- **Add `__len` to `declare class Path`** — `#path` works at runtime (returns command count) but the type definitions didn't declare it, causing a false `TypeError: Operator '#' could not be applied to operand of type Path` in strict mode. Fix: added `function __len(self): number` to the Path class definition.
+
 ## [1.0.8] - 2026-03-19
 
 ### Added — CLI --force-strict-mode flag for full parity in analyze mode
