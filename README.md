@@ -9,6 +9,15 @@
   Rich tooltips, autocomplete, diagnostics, and IntelliSense — designed for artists and designers learning to code.
 </p>
 
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/ivg-design/rive-luau-lsp" alt="License"></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=IVGDesign.rive-luau"><img src="https://img.shields.io/visual-studio-marketplace/v/IVGDesign.rive-luau" alt="VS Marketplace Version"></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=IVGDesign.rive-luau"><img src="https://img.shields.io/visual-studio-marketplace/d/IVGDesign.rive-luau" alt="VS Marketplace Downloads"></a>
+  <a href="https://github.com/ivg-design/rive-luau-lsp/stargazers"><img src="https://img.shields.io/github/stars/ivg-design/rive-luau-lsp" alt="GitHub Stars"></a>
+  <a href="https://github.com/ivg-design/rive-luau-lsp/commits/main"><img src="https://img.shields.io/github/last-commit/ivg-design/rive-luau-lsp" alt="Last Commit"></a>
+  <a href="https://github.com/ivg-design/rive-luau-lsp/releases/latest"><img src="https://img.shields.io/github/v/release/ivg-design/rive-luau-lsp" alt="GitHub Release"></a>
+</p>
+
 ---
 
 ## Features
