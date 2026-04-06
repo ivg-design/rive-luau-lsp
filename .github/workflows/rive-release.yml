@@ -28,8 +28,11 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: recursive
+
+      # Only init the luau submodule (skip extern/sentry-native which has
+      # rate-limited chromium deps we don't need)
+      - name: Init luau submodule
+        run: git submodule update --init --recursive luau
 
       - uses: actions/setup-node@v4
         with:
