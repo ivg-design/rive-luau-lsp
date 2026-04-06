@@ -50,3 +50,13 @@ trace.json
 
 # Python venvs
 .venv
+
+# Rive extension binaries (built by CI, not committed)
+extension/bin/luau-lsp
+extension/bin/luau-lsp.exe
+bin/rive/luau-lsp
+bin/rive/luau-lsp.exe
+
+# Extension artifacts
+extension/node_modules/
+*.vsix

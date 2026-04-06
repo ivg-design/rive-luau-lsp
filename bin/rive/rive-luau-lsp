@@ -1,0 +1,27 @@
+#!/bin/bash
+# Rive Luau Language Server — for editor integration or agent use
+#
+# Usage:
+#   rive-luau-lsp                     # start LSP server (stdio)
+#   rive-luau-lsp [extra-flags...]    # pass additional luau-lsp flags
+#
+# This starts the language server in LSP mode over stdio, with Rive
+# type definitions and documentation pre-loaded. Connect to it from
+# any LSP client (VS Code, Neovim, Emacs, or a Claude Code agent).
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+LUAU_LSP="${SCRIPT_DIR}/luau-lsp"
+RIVE_DEFS="${REPO_DIR}/definitions/rive-globals.d.luau"
+RIVE_DOCS="${REPO_DIR}/definitions/luau-api-docs.json"
+
+if [ ! -x "${LUAU_LSP}" ]; then
+    echo "Error: luau-lsp binary not found at ${LUAU_LSP}" >&2
+    exit 1
+fi
+
+exec "${LUAU_LSP}" lsp \
+    "--definitions=@rive=${RIVE_DEFS}" \
+    "--docs=${RIVE_DOCS}" \
+    --no-flags-enabled \
+    "$@"
