@@ -1,144 +1,326 @@
-# Luau Language Server
+# Rive Luau LSP
 
-An implementation of a language server for the [Luau](https://github.com/Roblox/luau) programming language.
+<p align="center">
+  <img src="extension/icon.png" alt="Rive Luau LSP" width="128" height="128">
+</p>
 
-## Getting Started
+<p align="center">
+  <strong>A VS Code language server for Rive's Luau scripting environment.</strong><br>
+  Rich tooltips, autocomplete, diagnostics, and IntelliSense — designed for artists and designers learning to code.
+</p>
 
-Install the extension from the VSCode Marketplace or OpenVSX Registry:
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/ivg-design/rive-luau-lsp" alt="License"></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=IVGDesign.rive-luau"><img src="https://img.shields.io/visual-studio-marketplace/v/IVGDesign.rive-luau" alt="VS Marketplace Version"></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=IVGDesign.rive-luau"><img src="https://img.shields.io/visual-studio-marketplace/d/IVGDesign.rive-luau" alt="VS Marketplace Downloads"></a>
+  <a href="https://github.com/ivg-design/rive-luau-lsp/stargazers"><img src="https://img.shields.io/github/stars/ivg-design/rive-luau-lsp" alt="GitHub Stars"></a>
+  <a href="https://github.com/ivg-design/rive-luau-lsp/commits/main"><img src="https://img.shields.io/github/last-commit/ivg-design/rive-luau-lsp" alt="Last Commit"></a>
+  <a href="https://github.com/ivg-design/rive-luau-lsp/releases/latest"><img src="https://img.shields.io/github/v/release/ivg-design/rive-luau-lsp" alt="GitHub Release"></a>
+</p>
 
-- VSCode Marketplace: <https://marketplace.visualstudio.com/items?itemName=JohnnyMorganz.luau-lsp>
-- OpenVSX Registry: <https://open-vsx.org/extension/JohnnyMorganz/luau-lsp>
+---
 
-Alternatively, check out [Getting Started for Language Server Clients](https://github.com/JohnnyMorganz/luau-lsp/blob/main/editors/README.md)
-to setup your own client for a different editor.
+## Features
 
-A [Nightly Release](https://github.com/JohnnyMorganz/luau-lsp/actions/workflows/nightly.yml) runs every day with the latest changes on main.
-You can download the relevant release for your platform and manually install the `.vsix`.
-The nightly release builds with debug symbols and profiling instrumentation for debugging.
+- **Autocomplete** — context-aware suggestions for the entire Rive scripting API, standard Luau library, and your own code
+- **Hover documentation** — educational tooltips that explain every type, method, property, and parameter in plain English with practical examples
+- **Real-time diagnostics** — catches type errors, missing properties, and undefined variables as you type
+- **Go-to-definition** — jump to where any symbol is defined
+- **Syntax highlighting** — full Luau grammar support including Markdown code blocks
+- **Custom file icons** — `.luau` files get a distinctive icon in the explorer
 
-### For General Users
+### Documentation Philosophy
 
-The language server will start working immediately for general Luau code. There is built-in support
-for Luau's generalised [require-by-string semantics](https://rfcs.luau.org/new-require-by-string-semantics.html), using `require("./module")`.
+Every tooltip is written for people who **do not code for a living**. The Rive Luau scripting audience is primarily artists and motion designers learning to script. Tooltips explain concepts in visual/conceptual terms, use analogies, show practical examples with context, and warn about common mistakes in plain language.
 
-To provide global type definitions for a custom environment, specify `luau-lsp.types.definitionFiles`.
-Corresponding documentation is configured using `luau-lsp.types.documentationFiles`.
+Examples:
 
-If you use Luau in a different environment and are interested in using the language server, or
-looking for any specific features, please get in touch!
+```
+drawPath — "Render a shape on screen. This is the core drawing call in Rive scripting.
+You give it two things: path (what to draw) and paint (how it looks)."
 
-### For Rojo Users (requires `v7.3.0+`)
+clipPath — "Mask all future drawing to only appear inside this shape.
+Like cutting a hole in paper — after clipPath(), only the area inside the clip path is visible."
 
-By default, the latest Roblox type definitions and documentation are preloaded out of the box.
-This can be disabled by configuring `luau-lsp.platform.type`.
+BlendMode — "Controls how overlapping shapes blend together — like Photoshop layer blend modes.
+multiply = darken, screen = lighten, overlay = contrast boost."
+```
 
-The language server uses Rojo-style sourcemaps to resolve DataModel instance trees for intellisense.
-This is done by running `rojo sourcemap --watch default.project.json --output sourcemap.json`.
-The server listens to changes of a `sourcemap.json` file present at the workspace root. It is recommended to add this
-file to your `.gitignore`.
+---
 
-The following settings are configurable for sourcemap generation:
+## CLI Usage (for agents and automation)
 
-- `luau-lsp.sourcemap.enabled`: Whether sourcemap support is enabled (default: on)
-- `luau-lsp.sourcemap.autogenerate`: Whether sourcemaps are automatically generated by the client. If disabled, the server will listen to manual changes to a `sourcemap.json` file (default: on)
-- `luau-lsp.sourcemap.rojoProjectFile`: What project file to use (default: `default.project.json`)
-- `luau-lsp.sourcemap.includeNonScripts`: Whether to include non script instances in the sourcemap. May be disabled for expensive DataModels (default: on)
-- `luau-lsp.sourcemap.sourcemapFile`: What sourcemap file to use (default: `sourcemap.json`)
+The repo includes standalone CLI tools for type checking and static analysis — no VS Code required. Use these from scripts, CI pipelines, or AI coding agents.
 
-If you do not use Rojo, you can still use the Luau Language Server, you just need to manually generate a `sourcemap.json`
-file for your particular project layout. You can configure `luau-lsp.sourcemap.generatorCommand` to run a custom generator.
-If your generator does not support file watching, enable `luau-lsp.sourcemap.useVSCodeWatcher`.
+### Quick Start
 
-> Note: in the diagnostics type checker, the types for DataModel (DM) instances will resolve to `any`. This is a current limitation to reduce false positives.
-> However, autocomplete and hover intellisense will correctly resolve the DM type.
-> To enable this mode for diagnostics, set `luau-lsp.diagnostics.strictDatamodelTypes` (off by default).
-> [Read more](https://github.com/JohnnyMorganz/luau-lsp/issues/83#issuecomment-1192865024).
+```bash
+git clone https://github.com/ivg-design/rive-luau-lsp.git
+cd rive-luau-lsp
 
-**A companion Studio plugin is available to provide DataModel information for Instances which are not part of your Rojo build / filetree: [Plugin Marketplace](https://www.roblox.com/library/10913122509/Luau-Language-Server-Companion)**
+# Analyze a single file
+bin/rive-luau-analyze path/to/script.luau
 
-## Standalone
+# Analyze an entire directory
+bin/rive-luau-analyze path/to/effects/
 
-The tool can run standalone, similar to [`luau-analyze`](https://github.com/JohnnyMorganz/luau-analyze-rojo), to provide type and lint warnings in CI, with full Rojo resolution and API types support.
-The entry point for the analysis tool is `luau-lsp analyze`.
+# Start the LSP server (for editor/agent integration via stdio)
+bin/rive-luau-lsp
+```
 
-Install the binary and run `luau-lsp --help` for more information.
+### `rive-luau-analyze` — Static Analysis
+
+Runs type checking, linting, and diagnostics on Rive Luau files. Automatically loads the complete Rive API type definitions. Exit code 0 means no errors.
+
+```bash
+# Check a script for type errors
+bin/rive-luau-analyze effects/Glassifier/Glassifier.luau
+
+# Check all scripts in a directory (respects .luaurc if present)
+bin/rive-luau-analyze effects/
+
+# Pass additional luau-lsp flags
+bin/rive-luau-analyze myScript.luau --formatter=plain
+```
+
+### `rive-luau-lsp` — Language Server
+
+Starts the full language server over stdio with Rive definitions and documentation pre-loaded. Connect from any LSP-compatible client: Neovim, Emacs, Helix, Zed, or an AI agent.
+
+```bash
+# Start LSP server
+bin/rive-luau-lsp
+
+# With additional flags
+bin/rive-luau-lsp --flag:LuauSomeFlag=true
+```
+
+### Agent Integration Example
+
+An AI coding agent can use the analyze tool to validate Rive Luau code:
+
+```bash
+# After generating or modifying a script, validate it:
+result=$(bin/rive-luau-analyze generated_script.luau 2>&1)
+if [ $? -ne 0 ]; then
+    echo "Type errors found:"
+    echo "$result"
+    # Agent can fix errors and retry
+fi
+```
+
+---
+
+## AI Agent Skills
+
+Ready-to-install skill packages for AI coding agents. Each skill gives the agent access to the Rive Luau type checker, API reference, script patterns, and a validation workflow.
+
+### Claude Code
+
+Install by copying into your personal or project skills directory:
+
+```bash
+# Personal (available in all projects)
+cp -r skills/claude/rive-luau-lsp ~/.claude/skills/
+
+# Project-level (available in one repo)
+cp -r skills/claude/rive-luau-lsp .claude/skills/
+```
+
+Then invoke with `/rive-luau-lsp` or let Claude auto-trigger when working with `.luau` files.
+
+See [`skills/claude/rive-luau-lsp/SKILL.md`](skills/claude/rive-luau-lsp/SKILL.md)
+
+### OpenAI Codex
+
+Install by copying into your user or project skills directory:
+
+```bash
+# Personal
+cp -r skills/codex/rive-luau-lsp ~/.agents/skills/
+
+# Project-level
+cp -r skills/codex/rive-luau-lsp .agents/skills/
+```
+
+Codex will auto-trigger the skill when working with Rive Luau scripts.
+
+See [`skills/codex/rive-luau-lsp/SKILL.md`](skills/codex/rive-luau-lsp/SKILL.md) and [`skills/codex/rive-luau-lsp/agents/openai.yaml`](skills/codex/rive-luau-lsp/agents/openai.yaml)
+
+### Other LSP-Compatible Editors (Cursor, Windsurf, Neovim, etc.)
+
+Point your editor's LSP configuration to the language server:
+
+```json
+{
+  "luau": {
+    "command": "/path/to/rive-luau-lsp/bin/rive-luau-lsp",
+    "filetypes": ["luau"]
+  }
+}
+```
+
+---
+
+## VS Code Extension
+
+### From VSIX (recommended)
+
+1. Download the latest `.vsix` from the [Releases](https://github.com/ivg-design/rive-luau-lsp/releases) page
+2. In VS Code, open the Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`)
+3. Run **"Extensions: Install from VSIX..."**
+4. Select the downloaded `.vsix` file
+5. Reload VS Code
+
+### From Source
+
+```bash
+git clone https://github.com/ivg-design/rive-luau-lsp.git
+cd rive-luau-lsp/extension
+npm install
+npx @vscode/vsce package --allow-missing-repository
+code --install-extension rive-luau-*.vsix
+```
+
+---
+
+## What's Included
+
+### Language Server (`bin/luau-lsp`)
+
+A modified build of [luau-lsp](https://github.com/JohnnyMorganz/luau-lsp) by JohnnyMorganz with Rive-specific changes:
+
+- **Ancestor-walk require resolution** — Rive resolves `require("lib/Module")` from the script root directory, not the file's directory. The LSP walks up parent directories to find the correct module, eliminating false "Module not found" errors.
+- **Local-only documentation** — All hover tooltips render locally without "Learn More" links to external websites.
+- **Data namespace type resolution** — `Input<Data.X>` resolves in type annotations via a namespace fallback system, matching Rive editor syntax. `Data.X.new()` returns a typed ViewModel instance with dynamic property access.
+
+### Type Definitions (`definitions/rive-globals.d.luau`)
+
+Complete Rive scripting API type definitions with educational documentation covering:
+
+| Category | Types |
+|----------|-------|
+| **Core** | `Vector`, `Color`, `Mat2D` |
+| **Drawing** | `Path`, `Paint`, `Renderer`, `Gradient`, `PathMeasure`, `ContourMeasure`, `ImageSampler` |
+| **Scene** | `NodeData`, `NodeReadData`, `Artboard`, `Animation` |
+| **Data Binding** | `ViewModel`, `Property<T>`, `PropertyList`, `DataContext`, `Context`, `Data` namespace |
+| **Assets** | `Image`, `Blob`, `AudioSource`, `AudioSound`, `Audio` |
+| **Script Protocols** | `Node<T>`, `Layout<T>`, `Converter<T,I,O>`, `PathEffect<T>`, `ListenerAction<T>`, `TransitionCondition<T>` |
+| **Data Values** | `DataValue`, `DataValueNumber`, `DataValueString`, `DataValueBoolean`, `DataValueColor` |
+| **Events** | `PointerEvent` |
+| **Testing** | `Tester`, `Expectation` |
+
+### Standard Library Documentation (`definitions/luau-api-docs.json`)
+
+655 symbol entries covering the entire Luau standard library, all rewritten with educational descriptions:
+
+- **math** — 30 functions + 7 constants (floor, ceil, clamp, lerp, sin, cos, noise, etc.)
+- **string** — 17 functions (find, format, gsub, split, sub, etc.)
+- **table** — 17 functions (insert, remove, sort, find, move, freeze, etc.)
+- **bit32** — 15 functions (band, bor, bxor, lshift, rshift, etc.)
+- **Global functions** — print, require, type, tostring, tonumber, assert, error, pcall, xpcall, pairs, ipairs, select, unpack, and more
+- **coroutine, debug, os, utf8, buffer** — full coverage
+
+---
+
+## File Icon
+
+The extension includes a custom icon for `.luau` files that appears automatically in the VS Code explorer (when your icon theme doesn't define its own `.luau` icon).
+
+For a dedicated icon theme, open the Command Palette and select **"Preferences: File Icon Theme"** → **"Rive Luau Icons"**.
+
+---
 
 ## Configuration
 
-There are 2 types of configuration styles for the language server. General configuration is provided by `.luaurc` files,
-which allow you to configure language strictness, lints, and require aliases. More information is available in Luau's [RFC documentation](https://rfcs.luau.org/config-luaurc.html).
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `rive-luau.trace.server` | `"off"` | Traces communication between VS Code and the language server. Set to `"messages"` or `"verbose"` for debugging. |
 
-The second configuration style is specific to the language server. See `luau-lsp` in your editor's settings for more details.
+---
 
-## Supported Features
+## Project Structure
 
-- [x] Diagnostics (incl. type errors)
-- [x] Autocompletion
-- [x] Hover
-- [x] Signature Help
-- [x] Go To Definition
-- [x] Go To Type Definition
-- [x] Find References
-- [x] Document Link
-- [x] Document Symbol
-- [x] Color Provider
-- [x] Rename
-- [x] Semantic Tokens
-- [x] Inlay Hints
-- [x] Documentation Comments ([Moonwave Style](https://github.com/evaera/moonwave) - supporting both `--- comment` and `--[=[ comment ]=]`, but must be next to statement)
-- [x] Code Actions
-- [x] Workspace Symbols
-- [x] Folding Range
-- [x] Call Hierarchy
-
-The following are extra features defined in the LSP specification, but most likely do not apply to Luau or are not necessary.
-They can be investigated at a later time:
-
-- [ ] Go To Declaration (do not apply)
-- [ ] Go To Implementation (do not apply)
-- [ ] Code Lens (not necessary)
-- [ ] Document Highlight (not necessary - editor highlighting is sufficient)
-- [ ] Selection Range (not necessary - editor selection is sufficient)
-- [ ] Inline Value (applies for debuggers only)
-- [ ] Moniker
-- [ ] Formatting (see [stylua](https://github.com/JohnnyMorganz/StyLua))
-- [ ] Type Hierarchy (Luau currently does not provide any [public] ways to define type hierarchies)
-
-## Crash Reporting
-
-The language server implements opt-in crash reporting, using [Sentry](https://sentry.io/).
-
-On VSCode, this is configured via the setting `luau-lsp.server.crashReporting.enabled`.
-When a crash is encountered, an out-of-process crash handler will upload the crash details to Sentry via HTTP.
-
-When a crash is reported, the report stores the following information:
-
-- Crash reason and thread stack trace
-- Device metadata: OS name, version and CPU architecture
-- Dynamic libraries loaded into the process (including filesystem paths)
-
-This information is transferred through a [Minidump](https://docs.sentry.io/platforms/native/guides/minidumps/#what-is-a-minidump) file.
-This file is not stored after processing. No general usage data is recorded.
-
-Crash Reporting is only available for Windows and macOS, and is not active for Standalone mode (`luau-lsp analyze`)
-
-## Build From Source
-
-Submodules are required to build the project. You should use `--recurse-submodules` when you initally clone the project; e.g.
-
-```sh
-git clone https://github.com/JohnnyMorganz/luau-lsp.git --recurse-submodules
+```
+rive-luau-lsp/
+├── README.md
+├── CHANGELOG.md
+├── LICENSE                        # MIT
+├── ATTRIBUTION.md                 # Credits to upstream projects
+├── bin/
+│   ├── luau-lsp                   # Language server binary (macOS)
+│   ├── rive-luau-analyze          # CLI: static analysis & type checking
+│   └── rive-luau-lsp             # CLI: start LSP server (stdio)
+├── definitions/
+│   ├── rive-globals.d.luau        # Rive API type definitions (with docs)
+│   └── luau-api-docs.json         # Standard library documentation
+└── extension/                     # VS Code extension source
+    ├── package.json               # Extension manifest
+    ├── extension.js               # Extension entry point
+    ├── icon.png                   # Extension marketplace icon
+    ├── README.md                  # Marketplace page content
+    ├── language-configuration.json
+    ├── bin/
+    │   └── luau-lsp               # Language server binary (bundled)
+    ├── definitions/
+    │   ├── rive-globals.d.luau    # Rive API type definitions (bundled)
+    │   └── luau-api-docs.json     # Standard library docs (bundled)
+    ├── icons/
+    │   ├── luau.svg               # File icon for .luau files
+    │   ├── file-icon-theme.json   # Icon theme definition
+    │   └── ...                    # Generic fallback icons
+    └── syntaxes/
+        ├── Luau.tmLanguage.json   # Syntax highlighting grammar
+        └── codeblock.json         # Markdown code block injection
 ```
 
-To compile the project, execute the following commands in the project root directory.
+---
 
-```sh
-git submodule update --init --recursive
+## Building from Source
+
+### Prerequisites
+
+- Node.js 18+
+- npm
+- VS Code 1.80+
+
+### Build the Extension
+
+```bash
+cd extension
+npm install
+npx @vscode/vsce package --allow-missing-repository
+```
+
+### Build the Language Server (optional)
+
+To rebuild the language server binary from source, clone the modified luau-lsp fork and build with CMake:
+
+```bash
+git clone https://github.com/ivg-design/luau-lsp.git
+cd luau-lsp
 mkdir build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release
-cmake --build . --target Luau.LanguageServer.CLI --config Release
+cmake --build . --target luau-lsp -j
 ```
 
-You can build `Luau.LanguageServer.Test` for unit tests.
-Some tests make assumptions about relative file paths.
-When running tests, ensure that your current working directory is set to the root of the repository.
+Copy the resulting binary to `extension/bin/luau-lsp`.
+
+---
+
+## Attribution
+
+This project stands on the shoulders of open source software:
+
+- **[Rive](https://github.com/rive-app/rive-runtime)** — Copyright (c) 2020 Rive. The scripting API and type definitions are based on Rive's official documentation and runtime (MIT License)
+- **[luau-lsp](https://github.com/JohnnyMorganz/luau-lsp)** — Copyright (c) 2022 JohnnyMorganz. The language server that powers everything (MIT License)
+- **[Luau](https://github.com/luau-lang/luau)** — Copyright (c) 2019-2025 Roblox Corporation; Copyright (c) 1994-2019 Lua.org, PUC-Rio. The scripting language itself (MIT License)
+- **[Lua](https://www.lua.org)** — Copyright (c) 1994-2019 Lua.org, PUC-Rio. The language Luau is derived from (MIT License)
+
+See [ATTRIBUTION.md](ATTRIBUTION.md) for full details.
+
+---
+
+## License
+
+[MIT](LICENSE)
