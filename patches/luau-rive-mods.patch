@@ -1,0 +1,134 @@
+diff --git a/Analysis/include/Luau/Scope.h b/Analysis/include/Luau/Scope.h
+index 55a49786..7280bcbf 100644
+--- a/Analysis/include/Luau/Scope.h
++++ b/Analysis/include/Luau/Scope.h
+@@ -52,7 +52,13 @@ struct Scope
+     std::unordered_map<Name, Location> typeAliasLocations;
+     std::unordered_map<Name, Location> typeAliasNameLocations;
+     std::unordered_map<Name, ModuleName> importedModules; // Mapping from the name in the require statement to the internal moduleName.
+-    std::unordered_map<Name, std::unordered_map<Name, TypeFun>> importedTypeBindings;
++    struct ImportedTypeNamespace
++    {
++        std::unordered_map<Name, TypeFun> members;
++        std::optional<TypeFun> fallback; // resolves any unknown name in this namespace
++    };
++
++    std::unordered_map<Name, ImportedTypeNamespace> importedTypeBindings;
+ 
+     DenseHashSet<Name> builtinTypeNames{""};
+     void addBuiltinTypeBinding(const Name& name, const TypeFun& tyFun);
+diff --git a/Analysis/src/AutocompleteCore.cpp b/Analysis/src/AutocompleteCore.cpp
+index 93d7f531..890f675a 100644
+--- a/Analysis/src/AutocompleteCore.cpp
++++ b/Analysis/src/AutocompleteCore.cpp
+@@ -613,7 +613,7 @@ AutocompleteEntryMap autocompleteModuleTypes(const Module& module, const ScopePt
+     {
+         if (auto it = scope->importedTypeBindings.find(std::string(moduleName)); it != scope->importedTypeBindings.end())
+         {
+-            for (const auto& [name, ty] : it->second)
++            for (const auto& [name, ty] : it->second.members)
+                 result[name] = AutocompleteEntry{AutocompleteEntryKind::Type, ty.type};
+ 
+             break;
+diff --git a/Analysis/src/ConstraintGenerator.cpp b/Analysis/src/ConstraintGenerator.cpp
+index 87d5b842..9ed6846e 100644
+--- a/Analysis/src/ConstraintGenerator.cpp
++++ b/Analysis/src/ConstraintGenerator.cpp
+@@ -1260,7 +1260,7 @@ ControlFlow ConstraintGenerator::visit(const ScopePtr& scope, AstStatLocal* stat
+                 continue;
+ 
+             const Name name{statLocal->vars.data[i]->name.value};
+-            scope->importedTypeBindings[name] = module->exportedTypeBindings;
++            scope->importedTypeBindings[name].members = module->exportedTypeBindings;
+             scope->importedModules[name] = moduleInfo->name;
+ 
+             // Imported typeArguments of requires that transitively refer to current module have to be replaced with 'any'
+@@ -1269,7 +1269,7 @@ ControlFlow ConstraintGenerator::visit(const ScopePtr& scope, AstStatLocal* stat
+                 if (path.empty() || path.front() != moduleInfo->name)
+                     continue;
+ 
+-                for (auto& [name, tf] : scope->importedTypeBindings[name])
++                for (auto& [name, tf] : scope->importedTypeBindings[name].members)
+                     tf = TypeFun{{}, {}, builtinTypes->anyType};
+             }
+         }
+diff --git a/Analysis/src/FragmentAutocomplete.cpp b/Analysis/src/FragmentAutocomplete.cpp
+index 2c191e4a..8379a663 100644
+--- a/Analysis/src/FragmentAutocomplete.cpp
++++ b/Analysis/src/FragmentAutocomplete.cpp
+@@ -711,7 +711,7 @@ void cloneTypesFromFragment(
+     {
+         if (std::optional<TypeFun> tf = staleScope->lookupImportedType(mod, name))
+         {
+-            destScope->importedTypeBindings[mod].insert_or_assign(name, Luau::cloneIncremental(*tf, *destArena, cloneState, destScope));
++            destScope->importedTypeBindings[mod].members.insert_or_assign(name, Luau::cloneIncremental(*tf, *destArena, cloneState, destScope));
+         }
+     }
+ 
+diff --git a/Analysis/src/Scope.cpp b/Analysis/src/Scope.cpp
+index 2894a279..4f25b908 100644
+--- a/Analysis/src/Scope.cpp
++++ b/Analysis/src/Scope.cpp
+@@ -136,20 +136,17 @@ std::optional<TypeFun> Scope::lookupImportedType(const Name& moduleAlias, const
+     while (scope)
+     {
+         auto it = scope->importedTypeBindings.find(moduleAlias);
+-        if (it == scope->importedTypeBindings.end())
++        if (it != scope->importedTypeBindings.end())
+         {
+-            scope = scope->parent.get();
+-            continue;
+-        }
++            auto it2 = it->second.members.find(name);
++            if (it2 != it->second.members.end())
++                return it2->second;
+ 
+-        auto it2 = it->second.find(name);
+-        if (it2 == it->second.end())
+-        {
+-            scope = scope->parent.get();
+-            continue;
++            if (it->second.fallback.has_value())
++                return it->second.fallback;
+         }
+ 
+-        return it2->second;
++        scope = scope->parent.get();
+     }
+ 
+     return std::nullopt;
+diff --git a/Analysis/src/ToString.cpp b/Analysis/src/ToString.cpp
+index bbfb2596..83ae4639 100644
+--- a/Analysis/src/ToString.cpp
++++ b/Analysis/src/ToString.cpp
+@@ -146,7 +146,7 @@ static std::pair<bool, std::optional<Luau::Name>> canUseTypeNameInScope(ScopePtr
+     {
+         for (const auto& [importName, nameTable] : curr->importedTypeBindings)
+         {
+-            if (nameTable.count(name))
++            if (nameTable.members.count(name))
+                 return {true, importName};
+         }
+ 
+diff --git a/Analysis/src/TypeInfer.cpp b/Analysis/src/TypeInfer.cpp
+index dd9ee668..48a6594c 100644
+--- a/Analysis/src/TypeInfer.cpp
++++ b/Analysis/src/TypeInfer.cpp
+@@ -1128,7 +1128,7 @@ ControlFlow TypeChecker::check(const ScopePtr& scope, const AstStatLocal& local)
+ 
+                     if (ModulePtr module = resolver->getModule(moduleInfo->name))
+                     {
+-                        scope->importedTypeBindings[name] = module->exportedTypeBindings;
++                        scope->importedTypeBindings[name].members = module->exportedTypeBindings;
+                         scope->importedModules[name] = moduleInfo->name;
+ 
+                         // Imported typeArguments of requires that transitively refer to current module have to be replaced with 'any'
+@@ -1136,7 +1136,7 @@ ControlFlow TypeChecker::check(const ScopePtr& scope, const AstStatLocal& local)
+                         {
+                             if (!path.empty() && path.front() == moduleInfo->name)
+                             {
+-                                for (auto& [name, tf] : scope->importedTypeBindings[name])
++                                for (auto& [name, tf] : scope->importedTypeBindings[name].members)
+                                     tf = TypeFun{{}, {}, anyType};
+                             }
+                         }

@@ -34,6 +34,10 @@ jobs:
       - name: Init luau submodule
         run: git submodule update --init --recursive luau
 
+      # Apply Rive patches to the Luau submodule (ImportedTypeNamespace fallback)
+      - name: Apply Luau patches
+        run: cd luau && git apply ../patches/luau-rive-mods.patch
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
