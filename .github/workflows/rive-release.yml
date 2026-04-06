@@ -5,6 +5,9 @@ on:
     tags: ["rive-v*"]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 env:
   MACOSX_DEPLOYMENT_TARGET: "10.15"
 
