@@ -1076,6 +1076,48 @@ declare PointerEvent: {
     new: (id: number, position: Vector) -> PointerEvent,
 }
 
+--- Context payload passed to `ListenerAction.performAction()`.
+---
+--- Listener actions can be triggered by different event kinds. Use the
+--- `is...()` guard before reading a payload through the matching `as...()`
+--- accessor.
+declare class ListenerContext
+    --- True when this listener action was triggered by a pointer event.
+    function isPointerEvent(self): boolean
+    --- Pointer event payload, or nil when the context is not a pointer event.
+    function asPointerEvent(self): PointerEvent?
+
+    --- True when this listener action was triggered by a keyboard event.
+    function isKeyboardEvent(self): boolean
+    --- Keyboard event payload. Payload fields are not fully modeled yet.
+    function asKeyboardEvent(self): any?
+
+    --- True when this listener action was triggered by text input.
+    function isTextInput(self): boolean
+    --- Text input payload. Payload fields are not fully modeled yet.
+    function asTextInput(self): any?
+
+    --- True when this listener action was triggered by focus change.
+    function isFocus(self): boolean
+    --- Focus payload. Payload fields are not fully modeled yet.
+    function asFocus(self): any?
+
+    --- True when this listener action was triggered by a reported event.
+    function isReportedEvent(self): boolean
+    --- Reported event payload. Payload fields are not fully modeled yet.
+    function asReportedEvent(self): any?
+
+    --- True when this listener action was triggered by a ViewModel change.
+    function isViewModelChange(self): boolean
+    --- ViewModel change payload. Payload fields are not fully modeled yet.
+    function asViewModelChange(self): any?
+
+    --- True when the listener context has no event payload.
+    function isNone(self): boolean
+    --- Empty/unknown payload. Payload fields are not fully modeled yet.
+    function asNone(self): any?
+end
+
 --- **A function called when a trigger fires.** Used with PropertyTrigger listeners.
 --- Receives an optional argument with trigger data.
 export type Trigger = (any) -> ()
@@ -1983,23 +2025,29 @@ export type PathEffect<T> = T & {
 
 --- Listener action script — responds to state machine listener events.
 ---
---- **Required:** `perform(self, pointerEvent)` — called when a state machine listener fires.
+--- **Preferred:** `performAction(self, listenerContext)` — called when a state machine listener fires.
+---
+--- **Legacy:** `perform(self, pointerEvent)` — older pointer-event-only callback shape.
 ---
 --- **Example:**
 --- ```lua
 --- type ClickAction = { context: Context }
 ---
---- function perform(self: ClickAction, event: PointerEvent)
----     print("Listener fired at:", event.position.x, event.position.y)
+--- function performAction(self: ClickAction, listenerContext: ListenerContext)
+---     local event = listenerContext:asPointerEvent()
+---     if event then
+---         print("Listener fired at:", event.position.x, event.position.y)
+---     end
 --- end
 ---
 --- return function(): ListenerAction<ClickAction>
----     return { perform = perform, context = late() }
+---     return { performAction = performAction, context = late() }
 --- end
 --- ```
 export type ListenerAction<T> = T & {
     init: ((self: T, context: Context) -> boolean)?,
-    perform: (self: T, pointerEvent: PointerEvent) -> (),
+    performAction: ((self: T, listenerContext: ListenerContext) -> ())?,
+    perform: ((self: T, pointerEvent: PointerEvent) -> ())?,
 }
 
 --- Transition condition script — custom logic for state machine transitions.

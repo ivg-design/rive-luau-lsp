@@ -2,6 +2,14 @@
 
 All notable changes to the Rive Luau LSP extension will be documented in this file.
 
+## [1.1.2] - 2026-04-27
+
+### Fixed — ListenerAction `performAction` protocol
+
+- **Add `ListenerContext` type definition** — ListenerAction scripts can now type the current `performAction(self, listenerContext: ListenerContext)` callback without `Unknown type 'ListenerContext'` diagnostics.
+- **Accept current and legacy ListenerAction callbacks** — `ListenerAction<T>` now supports `performAction` while preserving legacy `perform(self, pointerEvent: PointerEvent)` compatibility for older scripts.
+- **Model ListenerContext event guards/accessors** — Added conservative `is...()` and `as...()` declarations for pointer, keyboard, text input, focus, reported event, ViewModel change, and none payloads.
+
 ## [1.0.10] - 2026-03-24
 
 ### Fixed — 100% type checking parity with Rive editor
