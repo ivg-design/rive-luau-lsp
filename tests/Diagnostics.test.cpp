@@ -4,6 +4,23 @@
 
 TEST_SUITE_BEGIN("Diagnostics");
 
+TEST_CASE_FIXTURE(Fixture, "document_diagnostics_keeps_lint_errors_as_warnings")
+{
+    workspace.fileResolver.defaultConfig.lintErrors = true;
+
+    auto document = newDocument("unused.luau", R"(
+        local function unused()
+            return 1
+        end
+    )");
+
+    auto diagnostics = workspace.documentDiagnostics(lsp::DocumentDiagnosticParams{{document}}, nullptr);
+    REQUIRE_EQ(diagnostics.items.size(), 1);
+    CHECK_EQ(diagnostics.items[0].message.substr(0, 14), "FunctionUnused");
+    REQUIRE(diagnostics.items[0].severity);
+    CHECK_EQ(*diagnostics.items[0].severity, lsp::DiagnosticSeverity::Warning);
+}
+
 TEST_CASE_FIXTURE(Fixture, "document_diagnostics_sends_information_for_required_modules")
 {
     client->capabilities.textDocument = lsp::TextDocumentClientCapabilities{};

@@ -2,6 +2,14 @@
 
 All notable changes to the Rive Luau LSP extension will be documented in this file.
 
+## [1.1.3] - 2026-04-30
+
+### Fixed — lint severity and duplicated hover content
+
+- **Keep unused-code lints as warnings** — `LocalUnused`, `FunctionUnused`, and other Luau lint findings now stay `DiagnosticSeverity::Warning` even when Luau returns them through `lintResult.errors`.
+- **Preserve lint quick fixes in both lint buckets** — quick fixes and "Remove all unused code" now inspect both lint warnings and lint errors.
+- **Avoid duplicate VS Code provider matching** — the extension now registers a single Luau language selector instead of overlapping language and `**/*.luau` file-pattern selectors, and guards against duplicate client startup in one extension host.
+
 ## [1.1.2] - 2026-04-27
 
 ### Fixed — ListenerAction `performAction` protocol

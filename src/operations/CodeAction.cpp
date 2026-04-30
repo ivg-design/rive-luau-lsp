@@ -295,10 +295,10 @@ lsp::CodeActionResult WorkspaceFolder::codeAction(const lsp::CodeActionParams& p
     // Quick fixes from lint warnings
     if (params.context.wants(lsp::CodeActionKind::QuickFix))
     {
-        for (const auto& lint : cr.lintResult.warnings)
+        auto handleLintQuickFix = [&](const Luau::LintWarning& lint)
         {
             if (!requestRange.overlaps(lint.location))
-                continue;
+                return;
 
             auto lintRange = textDocument->convertLocation(lint.location);
             auto diagnostic = findMatchingDiagnostic(params.context.diagnostics, lintRange);
@@ -328,7 +328,12 @@ lsp::CodeActionResult WorkspaceFolder::codeAction(const lsp::CodeActionParams& p
             default:
                 break;
             }
-        }
+        };
+
+        for (const auto& lint : cr.lintResult.errors)
+            handleLintQuickFix(lint);
+        for (const auto& lint : cr.lintResult.warnings)
+            handleLintQuickFix(lint);
 
         UnknownSymbolFixContext unknownSymbolCtx{
             params.textDocument.uri,
@@ -394,7 +399,7 @@ lsp::CodeActionResult WorkspaceFolder::codeAction(const lsp::CodeActionParams& p
         std::vector<lsp::TextEdit> edits;
         std::unordered_set<size_t> deletedLines;
 
-        for (const auto& lint : cr.lintResult.warnings)
+        auto addRemoveUnusedEdit = [&](const Luau::LintWarning& lint)
         {
             if (lint.code == Luau::LintWarning::Code_LocalUnused || lint.code == Luau::LintWarning::Code_FunctionUnused ||
                 lint.code == Luau::LintWarning::Code_ImportUnused)
@@ -424,7 +429,12 @@ lsp::CodeActionResult WorkspaceFolder::codeAction(const lsp::CodeActionParams& p
                         deletedLines.insert(line);
                 }
             }
-        }
+        };
+
+        for (const auto& lint : cr.lintResult.errors)
+            addRemoveUnusedEdit(lint);
+        for (const auto& lint : cr.lintResult.warnings)
+            addRemoveUnusedEdit(lint);
 
         if (!edits.empty())
         {

@@ -100,11 +100,7 @@ lsp::DocumentDiagnosticReport WorkspaceFolder::documentDiagnostics(
     // Report Lint Warnings
     // Lints only apply to the current file
     for (auto& error : cr.lintResult.errors)
-    {
-        auto diagnostic = createLintDiagnostic(error, *textDocument);
-        diagnostic.severity = lsp::DiagnosticSeverity::Error; // Report this as an error instead
-        report.items.emplace_back(diagnostic);
-    }
+        report.items.emplace_back(createLintDiagnostic(error, *textDocument));
     for (auto& error : cr.lintResult.warnings)
         report.items.emplace_back(createLintDiagnostic(error, *textDocument));
 
@@ -193,11 +189,7 @@ lsp::WorkspaceDiagnosticReport WorkspaceFolder::workspaceDiagnostics(const lsp::
 
         // Report Lint Warnings
         for (auto& error : cr.lintResult.errors)
-        {
-            auto diagnostic = createLintDiagnostic(error, document);
-            diagnostic.severity = lsp::DiagnosticSeverity::Error; // Report this as an error instead
-            documentReport.items.emplace_back(diagnostic);
-        }
+            documentReport.items.emplace_back(createLintDiagnostic(error, document));
         for (auto& error : cr.lintResult.warnings)
             documentReport.items.emplace_back(createLintDiagnostic(error, document));
 

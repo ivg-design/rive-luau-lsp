@@ -6,6 +6,10 @@ const os = require("os");
 let client;
 
 function activate(context) {
+  if (client) {
+    return;
+  }
+
   const binaryName = os.platform() === "win32" ? "luau-lsp.exe" : "luau-lsp";
   const binaryPath = path.join(context.extensionPath, "bin", binaryName);
   const definitionsPath = path.join(
@@ -32,10 +36,7 @@ function activate(context) {
   };
 
   const clientOptions = {
-    documentSelector: [
-      { scheme: "file", language: "luau" },
-      { scheme: "file", pattern: "**/*.luau" },
-    ],
+    documentSelector: [{ scheme: "file", language: "luau" }],
     initializationOptions: {
       platform: { type: "standard" },
       types: { roblox: false },
