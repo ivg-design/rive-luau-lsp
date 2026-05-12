@@ -1,8 +1,9 @@
-/build
+/build/
 .vscode/settings.json
+.vscode/devmirror/
 /.vs
 out/
-.cache
+.cache/
 .idea
 .DS_Store
 cmake-build-debug/
@@ -11,10 +12,19 @@ cmake-build-relwithdebinfo/
 cmake-build-debug-visual-studio/
 cmake-build-release-visual-studio/
 cmake-build-relwithdebinfo-visual-studio/
-CMakeFiles
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
+CTestTestfile.cmake
+DartConfiguration.tcl
 sourcemap.json
 trace.json
-
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 # Prerequisites
 *.d
 
@@ -59,4 +69,7 @@ bin/rive/luau-lsp.exe
 
 # Extension artifacts
 extension/node_modules/
+rive-luau-vscode/node_modules/
 *.vsix
+*.tgz
+rive-luau-cli-*.zip
