@@ -15,11 +15,14 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 LUAU_LSP="${SCRIPT_DIR}/luau-lsp"
 RIVE_DEFS="${REPO_DIR}/extension/definitions/rive-globals.d.luau"
-RIVE_DOCS="${REPO_DIR}/extension/definitions/luau-api-docs.json"
+
+if [ ! -x "${LUAU_LSP}" ] && [ -x "${REPO_DIR}/build/luau-lsp" ]; then
+    LUAU_LSP="${REPO_DIR}/build/luau-lsp"
+fi
 
 if [ ! -x "${LUAU_LSP}" ]; then
     echo "Error: luau-lsp binary not found at ${LUAU_LSP}"
-    echo "Build with: mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Release && cmake --build . --target Luau.LanguageServer.CLI -j\$(nproc)"
+    echo "Build with: cmake --build build --target Luau.LanguageServer.CLI -j\$(sysctl -n hw.ncpu)"
     exit 1
 fi
 
@@ -38,7 +41,6 @@ fi
 
 exec "${LUAU_LSP}" analyze \
     "--definitions=@rive=${RIVE_DEFS}" \
-    "--docs=${RIVE_DOCS}" \
     --flag:LuauSolverV2=true \
     --force-strict-mode \
     "$@"

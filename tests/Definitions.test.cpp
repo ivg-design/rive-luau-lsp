@@ -7,6 +7,13 @@ using namespace Luau::LanguageServer;
 
 TEST_SUITE_BEGIN("Definitions");
 
+static std::string readRequiredFile(const std::string& path)
+{
+    auto contents = Luau::FileUtils::readFile(path);
+    REQUIRE_MESSAGE(contents, "Unable to read " << path);
+    return *contents;
+}
+
 TEST_CASE("use_platform_metadata_from_first_registered_definitions_file")
 {
     Client client;
@@ -185,6 +192,34 @@ TEST_CASE_FIXTURE(Fixture, "type_functions_in_definition_files_work")
         local x: foo<number> = nil :: any
     )");
     REQUIRE(result.errors.empty());
+}
+
+static void checkRiveScriptFixture(const std::string& path)
+{
+    ScopedFastFlag sffNewSolver{FFlag::LuauSolverV2, true};
+
+    Client client;
+    auto workspace = WorkspaceFolder(&client, "$TEST_WORKSPACE", Uri::file(*Luau::FileUtils::getCurrentWorkingDirectory()), std::nullopt);
+    client.definitionsFiles.emplace("@rive", "./extension/definitions/rive-globals.d.luau");
+
+    workspace.frontend.setLuauSolverMode(Luau::SolverMode::New);
+    workspace.setupWithConfiguration(defaultTestClientConfiguration());
+    workspace.frontend.setLuauSolverMode(Luau::SolverMode::New);
+    workspace.isReady = true;
+
+    auto document = newDocument(workspace, "rive_test.luau", readRequiredFile(path));
+    auto result = workspace.frontend.check(workspace.fileResolver.getModuleName(document));
+    REQUIRE_MESSAGE(result.errors.empty(), "Rive test fixture failed: " << path);
+}
+
+TEST_CASE("rive_definitions_accept_confetti_node_script")
+{
+    checkRiveScriptFixture("tests/testdata/rive_confetti_node.luau");
+}
+
+TEST_CASE("rive_definitions_cover_current_runtime_scripting_surface")
+{
+    checkRiveScriptFixture("tests/testdata/rive_runtime_surface.luau");
 }
 
 TEST_SUITE_END();

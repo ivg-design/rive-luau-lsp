@@ -257,7 +257,7 @@ declare class Mat2D
     [number]: number
 
     -- Operators: mat * mat (combine transforms), mat * vec (transform point)
-    function __mul(self, other: Mat2D | Vector): Mat2D | Vector
+    __mul: ((self: Mat2D, other: Mat2D) -> Mat2D) & ((self: Mat2D, other: Vector) -> Vector)
 
     --- Compute the inverse of this matrix. Returns nil if the matrix is singular (not invertible).
     --- ```lua
@@ -313,6 +313,83 @@ declare Mat2D: {
     --- Compute inverse of `input` and write into `output`. Returns true on success.
     --- More efficient than creating a new matrix — reuses `output`.
     invert: (output: Mat2D, input: Mat2D) -> boolean,
+}
+
+--- 4D matrix used by newer runtime scripting APIs for 3D and GPU-oriented work.
+---
+--- Mat4 stores values in column-major order and supports direct field access
+--- through `m11` ... `m44` plus numeric indexes `mat[1]` ... `mat[16]`.
+--- Use it for perspective projection, 3D transforms, and passing matrices to
+--- GPU buffers.
+declare class Mat4
+    m11: number
+    m12: number
+    m13: number
+    m14: number
+    m21: number
+    m22: number
+    m23: number
+    m24: number
+    m31: number
+    m32: number
+    m33: number
+    m34: number
+    m41: number
+    m42: number
+    m43: number
+    m44: number
+    --- Indexed access: `mat[1]` through `mat[16]` in column-major order.
+    [number]: number
+
+    --- Combine two Mat4 transforms.
+    function __mul(self, other: Mat4): Mat4
+
+    --- Return an inverse matrix, or nil if this matrix is singular.
+    function invert(self): Mat4?
+    --- Return an inverse optimized for affine transforms, or nil if singular.
+    function invertAffine(self): Mat4?
+    --- Return a transposed copy of this matrix.
+    function transpose(self): Mat4
+    --- Transform a 3D point with implicit `w = 1`.
+    function transformPoint(self, x: number, y: number, z: number): Vector
+    --- Transform a 4D vector and return all four output components.
+    function transformVec4(self, x: number, y: number, z: number, w: number): (number, number, number, number)
+    --- Write all 16 float values into a Luau buffer at `byteOffset`.
+    function writeToBuffer(self, output: buffer, byteOffset: number): ()
+end
+
+--- Static constructors and in-place helpers for Mat4.
+declare Mat4: {
+    identity: () -> Mat4,
+    values: (
+        m11: number,
+        m12: number,
+        m13: number,
+        m14: number,
+        m21: number,
+        m22: number,
+        m23: number,
+        m24: number,
+        m31: number,
+        m32: number,
+        m33: number,
+        m34: number,
+        m41: number,
+        m42: number,
+        m43: number,
+        m44: number
+    ) -> Mat4,
+    fromTranslation: (x: number, y: number, z: number) -> Mat4,
+    fromScale: (sx: number, sy: number?, sz: number?) -> Mat4,
+    fromRotationX: (radians: number) -> Mat4,
+    fromRotationY: (radians: number) -> Mat4,
+    fromRotationZ: (radians: number) -> Mat4,
+    perspective: (fovYRadians: number, aspect: number, near: number, far: number) -> Mat4,
+    perspectiveReverseZ: (fovYRadians: number, aspect: number, near: number) -> Mat4,
+    multiply: (output: Mat4, a: Mat4, b: Mat4) -> Mat4,
+    multiplyAffine: (output: Mat4, a: Mat4, b: Mat4) -> Mat4,
+    invert: (output: Mat4, input: Mat4) -> boolean,
+    invertAffine: (output: Mat4, input: Mat4) -> boolean,
 }
 
 -- =============================================================================
@@ -845,13 +922,13 @@ declare class Renderer
     function drawPath(self, path: Path, paint: Paint): ()
     --- **Display an image on screen** with filtering, blending, and transparency.
     ---
-    --- - **image** — loaded via `context:getImage("name")`
+    --- - **image** — loaded via `context:image("name")`
     --- - **sampler** — controls how the image is filtered/tiled
     --- - **blendMode** — how it blends with what's behind (`"srcOver"` is normal)
     --- - **opacity** — 0.0 (invisible) to 1.0 (fully visible)
     ---
     --- ```lua
-    --- local img = context:getImage("myTexture")
+    --- local img = context:image("myTexture")
     --- local sampler = ImageSampler("clamp", "clamp", "bilinear")
     --- renderer:drawImage(img, sampler, "srcOver", 0.8) -- 80% opacity
     --- ```
@@ -1076,6 +1153,53 @@ declare PointerEvent: {
     new: (id: number, position: Vector) -> PointerEvent,
 }
 
+--- Keyboard payload passed through listener actions and drawable node input.
+declare class KeyboardInvocation
+    --- Numeric Rive key code for the key that changed.
+    key: number
+    --- True when Shift was held.
+    shift: boolean
+    --- True when Control was held.
+    control: boolean
+    --- True when Alt/Option was held.
+    alt: boolean
+    --- True when Command/Meta was held.
+    meta: boolean
+    --- `"down"` for key press, `"repeat"` for key repeat, `"up"` for release.
+    phase: "down" | "repeat" | "up"
+end
+
+--- Text input payload. This is text after keyboard layout/input-method handling.
+declare class TextInputInvocation
+    text: string
+end
+
+--- Focus-change payload for listener actions.
+declare class FocusInvocation
+    isFocus: boolean
+end
+
+--- Reported-event payload for listener actions.
+declare class ReportedEventInvocation
+    --- Delay reported by the source event, in seconds.
+    delaySeconds: number
+end
+
+--- ViewModel-change payload for listener actions.
+declare class ViewModelChangeInvocation
+end
+
+--- Gamepad payload for listener actions.
+declare class GamepadInvocation
+    deviceId: number
+    buttonMask: number
+    axis0: number
+end
+
+--- Empty payload for listener actions that did not carry event data.
+declare class NoneInvocation
+end
+
 --- Context payload passed to `ListenerAction.performAction()`.
 ---
 --- Listener actions can be triggered by different event kinds. Use the
@@ -1089,33 +1213,38 @@ declare class ListenerContext
 
     --- True when this listener action was triggered by a keyboard event.
     function isKeyboardEvent(self): boolean
-    --- Keyboard event payload. Payload fields are not fully modeled yet.
-    function asKeyboardEvent(self): any?
+    --- Keyboard event payload, or nil when the context is not a keyboard event.
+    function asKeyboardEvent(self): KeyboardInvocation?
 
     --- True when this listener action was triggered by text input.
     function isTextInput(self): boolean
-    --- Text input payload. Payload fields are not fully modeled yet.
-    function asTextInput(self): any?
+    --- Text input payload, or nil when the context is not text input.
+    function asTextInput(self): TextInputInvocation?
 
     --- True when this listener action was triggered by focus change.
     function isFocus(self): boolean
-    --- Focus payload. Payload fields are not fully modeled yet.
-    function asFocus(self): any?
+    --- Focus payload, or nil when the context is not a focus event.
+    function asFocus(self): FocusInvocation?
 
     --- True when this listener action was triggered by a reported event.
     function isReportedEvent(self): boolean
-    --- Reported event payload. Payload fields are not fully modeled yet.
-    function asReportedEvent(self): any?
+    --- Reported-event payload, or nil when the context is not a reported event.
+    function asReportedEvent(self): ReportedEventInvocation?
 
     --- True when this listener action was triggered by a ViewModel change.
     function isViewModelChange(self): boolean
-    --- ViewModel change payload. Payload fields are not fully modeled yet.
-    function asViewModelChange(self): any?
+    --- ViewModel-change payload, or nil when the context is not a ViewModel change.
+    function asViewModelChange(self): ViewModelChangeInvocation?
+
+    --- True when this listener action was triggered by a gamepad event.
+    function isGamepad(self): boolean
+    --- Gamepad payload, or nil when the context is not a gamepad event.
+    function asGamepad(self): GamepadInvocation?
 
     --- True when the listener context has no event payload.
     function isNone(self): boolean
-    --- Empty/unknown payload. Payload fields are not fully modeled yet.
-    function asNone(self): any?
+    --- Empty payload, or nil when the context has another payload kind.
+    function asNone(self): NoneInvocation?
 end
 
 --- **A function called when a trigger fires.** Used with PropertyTrigger listeners.
@@ -1146,8 +1275,8 @@ export type Trigger = (any) -> ()
 --- score:removeListener(myCallback)
 --- ```
 export type Listener<T> =
-    (<K>(self: T, obj: K, callback: (K) -> ()) -> ())
-    & ((self: T, callback: () -> ()) -> ())
+    (<K>(self: any, obj: K, callback: (K) -> ()) -> ())
+    & ((self: any, callback: () -> ()) -> ())
 
 --- **A live value connected to the Rive editor.** Read it, write it, listen for changes.
 ---
@@ -1207,6 +1336,16 @@ export type PropertyBoolean = Property<boolean>
 --- tint.value = Color.rgb(255, 0, 0)  -- change to red
 --- ```
 export type PropertyColor = Property<Color>
+
+--- **An image property** from the ViewModel. Read/write via `.value`.
+--- The value is an `Image` asset or nil when no image is assigned.
+--- ```lua
+--- local portrait = vm:getImage("portrait")
+--- if portrait and portrait.value then
+---     renderer:drawImage(portrait.value, sampler, "srcOver", 1)
+--- end
+--- ```
+export type PropertyImage = Property<Image?>
 
 --- Trigger property. Call fire() to trigger, addListener() to react.
 ---
@@ -1300,6 +1439,10 @@ declare class ViewModel
     function getViewModel(self, name: string): PropertyViewModel?
     --- Get an enum property by name. Returns nil if not found.
     function getEnum(self, name: string): PropertyEnum?
+    --- Get this item's ViewModel-list index. Returns -1 when not in a list.
+    function getIndex(self): number
+    --- Get an image property by name. Returns nil if not found.
+    function getImage(self, name: string): PropertyImage?
     --- Create an independent copy of this ViewModel. Changes to the copy
     --- won't affect the original. Useful for list items.
     function instance(self): ViewModel
@@ -1330,6 +1473,9 @@ end
 --- ```lua
 --- list:pop()    -- remove last item
 --- list:shift()  -- remove first item
+--- list:removeAt(3)
+--- list:removeAllOf(template)
+--- list:clear()
 --- ```
 export type PropertyList = {
     --- **How many items** are in the list. Same as `count`.
@@ -1347,6 +1493,14 @@ export type PropertyList = {
     insert: (self: PropertyList, vm: ViewModel, index: number) -> (),
     --- **Swap two items' positions** in the list. Useful for reordering.
     swap: (self: PropertyList, index1: number, index2: number) -> (),
+    --- **Remove one matching item** from the list.
+    remove: (self: PropertyList, vm: ViewModel) -> (),
+    --- **Remove the item at a 1-based index.** Runtime errors if the index is out of range.
+    removeAt: (self: PropertyList, index: number) -> (),
+    --- **Remove every item backed by the same ViewModel instance.**
+    removeAllOf: (self: PropertyList, vm: ViewModel) -> (),
+    --- **Remove all items** from the list.
+    clear: (self: PropertyList) -> (),
     --- **Remove and return the last item.** Returns nil if the list is empty.
     pop: (self: PropertyList) -> ViewModel?,
     --- **Remove and return the first item.** Remaining items shift back.
@@ -1388,6 +1542,147 @@ declare class DataContext
     function viewModel(self): ViewModel?
 end
 
+--- Options for `context:canvas()`.
+export type CanvasOptions = {
+    width: number,
+    height: number,
+    clearColor: Color?,
+}
+
+--- Options for `context:gpuCanvas()`.
+export type GPUCanvasOptions = {
+    width: number,
+    height: number,
+    sampleCount: number?,
+}
+
+--- Decoded image pixels returned by `context:decodeImage(blob.data)`.
+export type DecodedImage = {
+    data: buffer,
+    width: number,
+    height: number,
+}
+
+--- Runtime GPU capability report returned by `context:features()`.
+export type GPUFeatures = {
+    bc: boolean,
+    etc2: boolean,
+    astc: boolean,
+    maxTextureSize2D: number,
+    maxTextureSizeCube: number,
+    maxTextureSize3D: number,
+    anisotropicFiltering: boolean,
+    texture3D: boolean,
+    textureArrays: boolean,
+    colorBufferFloat: boolean,
+    perTargetBlend: boolean,
+    perTargetWriteMask: boolean,
+    drawBaseInstance: boolean,
+    depthBiasClamp: boolean,
+    maxColorAttachments: number,
+    maxUniformBufferSize: number,
+    maxSamplers: number,
+    maxSamples: number,
+}
+
+--- Promise status string returned by `promise:getStatus()`.
+export type PromiseStatus = "Pending" | "Fulfilled" | "Rejected" | "Cancelled"
+
+--- Lightweight Promise used by async runtime APIs such as `context:decodeImage()`.
+export type Promise<T = any> = {
+    andThen: (self: any, onFulfilled: ((T) -> any)?, onRejected: ((any) -> any)?) -> any,
+    catch: (self: any, onRejected: (any) -> any) -> any,
+    finally: (self: any, callback: () -> ()) -> any,
+    cancel: (self: any) -> any,
+    onCancel: (self: any, callback: () -> ()) -> any,
+    getStatus: (self: any) -> PromiseStatus,
+}
+
+--- Create and combine runtime promises.
+declare Promise: {
+    resolve: <T>(value: T?) -> Promise<T?>,
+    reject: (reason: any) -> Promise<never>,
+    all: <T>(promises: { Promise<T> }) -> Promise<{ T }>,
+    new: <T>(executor: (resolve: (T) -> (), reject: (any) -> (), onCancel: ((() -> ()) -> ())) -> ()) -> Promise<T>,
+}
+
+--- Wait for a Promise inside an `async()` coroutine. Returns success plus value/error.
+declare function await<T>(promise: Promise<T>): (boolean, T)
+
+--- Run a function in a coroutine and return a Promise for its result.
+declare function async<T>(callback: () -> (T | Promise<T>)): Promise<T>
+
+--- Offscreen Rive canvas. Draw into it with `beginFrame()` / `endFrame()`.
+declare class Canvas
+    image: Image
+    width: number
+    height: number
+    function beginFrame(self): Renderer
+    function endFrame(self): ()
+    function resize(self, options: CanvasOptions): ()
+end
+
+--- GPU shader asset or source compiled by the runtime.
+declare class Shader
+end
+
+declare class GPUBuffer
+    size: number
+    function write(self, byteOffset: number, source: buffer, sourceOffset: number?, size: number?): ()
+end
+
+declare class GPUTextureView
+    format: string
+end
+
+declare class GPUTexture
+    width: number
+    height: number
+    format: string
+    function view(self, descriptor: any?): GPUTextureView
+    function upload(self, descriptor: any): ()
+end
+
+declare class GPUSampler
+end
+
+declare class GPUBindGroupLayout
+end
+
+declare class GPUBindGroup
+end
+
+declare class GPUPipeline
+    function getBindGroupLayout(self, index: number): GPUBindGroupLayout
+end
+
+declare class GPURenderPass
+    function setPipeline(self, pipeline: GPUPipeline): ()
+    function setVertexBuffer(self, slot: number, buffer: GPUBuffer, offset: number?, size: number?): ()
+    function setIndexBuffer(self, buffer: GPUBuffer, indexFormat: "uint16" | "uint32", offset: number?, size: number?): ()
+    function setBindGroup(self, index: number, group: GPUBindGroup, dynamicOffsets: { number }?): ()
+    function setViewport(self, x: number, y: number, width: number, height: number, minDepth: number?, maxDepth: number?): ()
+    function setScissorRect(self, x: number, y: number, width: number, height: number): ()
+    function setStencilReference(self, reference: number): ()
+    function setBlendColor(self, color: Color): ()
+    function draw(self, vertexCount: number, instanceCount: number?, firstVertex: number?, firstInstance: number?): ()
+    function drawIndexed(self, indexCount: number, instanceCount: number?, firstIndex: number?, baseVertex: number?, firstInstance: number?): ()
+    function finish(self): ()
+end
+
+--- GPU-backed offscreen canvas for custom render passes.
+declare class GPUCanvas
+    image: Image
+    width: number
+    height: number
+    sampleCount: number
+    hasDepth: boolean
+    format: string
+    function beginRenderPass(self, descriptor: any): GPURenderPass
+    function colorView(self): GPUTextureView
+    function resize(self, options: GPUCanvasOptions): ()
+end
+
 --- Runtime context passed to `init()`. Your bridge to the Rive editor.
 ---
 --- Provides access to:
@@ -1426,6 +1721,18 @@ declare class Context
     --- Audio.play(snd)
     --- ```
     function audio(self, name: string): AudioSource?
+    --- Create an offscreen canvas that can be drawn into and then composited as an Image.
+    function canvas(self, options: CanvasOptions): Canvas
+    --- Create a GPU canvas for custom GPU render passes.
+    function gpuCanvas(self, options: GPUCanvasOptions): GPUCanvas
+    --- Return GPU feature limits for the active runtime.
+    function features(self): GPUFeatures
+    --- Return the preferred canvas color format for the current platform.
+    function preferredCanvasFormat(self): string
+    --- Load a shader asset by name. Returns nil if the shader is not found or cannot compile.
+    function loadShader(self, name: string): Shader?
+    --- Asynchronously decode encoded image bytes into premultiplied RGBA pixels.
+    function decodeImage(self, data: buffer): Promise<DecodedImage>
     --- Request that the runtime re-evaluate this script on the next frame.
     --- Call this when you change data that requires visual updates outside of advance().
     function markNeedsUpdate(self): ()
@@ -1599,67 +1906,70 @@ end
 ---
 --- **Example:**
 --- ```lua
---- function init(self, context)
----     self.child = context:artboard("NestedArtboard")
+--- type Parent = {
+---     child: Input<Artboard<nil>>,
+--- }
+---
+--- function init(self: Parent, context: Context)
 ---     return true
 --- end
 ---
---- function advance(self, seconds)
+--- function advance(self: Parent, seconds: number)
 ---     self.child:advance(seconds)
 ---     return true
 --- end
 ---
---- function draw(self, renderer)
+--- function draw(self: Parent, renderer: Renderer)
 ---     self.child:draw(renderer)
 --- end
 --- ```
-declare class Artboard
+export type Artboard<T = any> = {
     --- Artboard width in pixels (read/write).
-    width: number
+    width: number,
     --- Artboard height in pixels (read/write).
-    height: number
+    height: number,
     --- Whether the frame origin is used for rendering.
-    frameOrigin: boolean
+    frameOrigin: boolean,
     --- Associated ViewModel data (typed). Read-only.
-    data: any
+    data: T,
     --- Draw the artboard's current state to the renderer.
-    function draw(self, renderer: Renderer): ()
+    draw: (self: Artboard<T>, renderer: Renderer) -> (),
     --- Advance all animations and state machines by `deltaTime` seconds.
     --- Returns false when a non-looping animation completes.
-    function advance(self, deltaTime: number): boolean
+    advance: (self: Artboard<T>, deltaTime: number) -> boolean,
     --- Create an independent copy of this artboard, optionally with a different ViewModel.
     --- ```lua
     --- local copy = artboard:instance()
     --- ```
-    function instance(self, viewModel: ViewModel?): Artboard
+    instance: (self: Artboard<T>, viewModel: ViewModel?) -> Artboard<T>,
     --- Get a named animation. Returns nil if not found.
     --- ```lua
     --- local anim = artboard:animation("bounce")
     --- ```
-    function animation(self, name: string): Animation?
+    animation: (self: Artboard<T>, name: string) -> Animation?,
     --- Get the bounding box as (min, max) Vectors.
     --- ```lua
     --- local min, max = artboard:bounds()
     --- local width = max.x - min.x
     --- ```
-    function bounds(self): (Vector, Vector)
+    bounds: (self: Artboard<T>) -> (Vector, Vector),
     --- Get a named node for reading/writing properties. Returns nil if not found.
     --- ```lua
     --- local shape = artboard:node("MyShape")
     --- shape.x = 100
     --- ```
-    function node(self, name: string): NodeData?
+    node: (self: Artboard<T>, name: string) -> NodeData?,
     --- Add this artboard's outline to a path, optionally transformed.
-    function addToPath(self, path: Path, transform: Mat2D?): ()
+    addToPath: (self: Artboard<T>, path: Path, transform: Mat2D?) -> (),
     --- Handle a pointer-down event. Returns hit count (0 = no hit).
-    function pointerDown(self, event: PointerEvent): number
+    pointerDown: (self: Artboard<T>, event: PointerEvent) -> number,
     --- Handle a pointer-up event. Returns hit count (0 = no hit).
-    function pointerUp(self, event: PointerEvent): number
+    pointerUp: (self: Artboard<T>, event: PointerEvent) -> number,
     --- Handle a pointer-move event. Returns hit count (0 = no hit).
-    function pointerMove(self, event: PointerEvent): number
+    pointerMove: (self: Artboard<T>, event: PointerEvent) -> number,
     --- Handle a pointer-exit event. Returns hit count (0 = no hit).
-    function pointerExit(self, event: PointerEvent): number
-end
+    pointerExit: (self: Artboard<T>, event: PointerEvent) -> number,
+}
 
 -- =============================================================================
 -- AUDIO SYSTEM
@@ -1902,6 +2212,10 @@ export type Output<T> = T
 --- - `pointerDown(self, event)`, `pointerMove(self, event)`
 --- - `pointerUp(self, event)`, `pointerExit(self, event)`
 ---
+--- **Keyboard/text methods (optional):**
+--- - `keyboardEvent(self, event)` returns true to stop propagation
+--- - `textEvent(self, event)` returns true to stop propagation
+---
 --- **Example:**
 --- ```lua
 --- type MyCircle = {
@@ -1935,6 +2249,8 @@ export type Node<T> = T & {
     pointerMove: ((self: T, event: PointerEvent) -> ())?,
     pointerUp: ((self: T, event: PointerEvent) -> ())?,
     pointerExit: ((self: T, event: PointerEvent) -> ())?,
+    keyboardEvent: ((self: T, event: KeyboardInvocation) -> boolean?)?,
+    textEvent: ((self: T, event: TextInputInvocation) -> boolean?)?,
 }
 
 --- Layout script — extends Node with size measurement and resize handling.
@@ -2073,6 +2389,17 @@ export type ListenerAction<T> = T & {
 export type TransitionCondition<T> = T & {
     init: ((self: T, context: Context) -> boolean)?,
     evaluate: (self: T) -> boolean,
+}
+
+--- Scripted interpolator — custom easing for animation keyframes.
+---
+--- `transform()` remaps the normalized factor before interpolation. Use
+--- `transformValue()` when the interpolation itself needs custom behavior.
+--- If either method is omitted, the runtime falls back to linear interpolation.
+export type Interpolator<T> = T & {
+    init: ((self: T, context: Context) -> boolean)?,
+    transform: ((self: T, factor: number) -> number)?,
+    transformValue: ((self: T, valueFrom: number, valueTo: number, factor: number) -> number)?,
 }
 
 -- =============================================================================

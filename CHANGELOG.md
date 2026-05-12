@@ -2,6 +2,16 @@
 
 All notable changes to the Rive Luau LSP extension will be documented in this file.
 
+## [1.1.4] - 2026-05-12
+
+### Fixed - current Rive runtime scripting parity
+
+- **Accept generic Artboard annotations** - `Artboard<nil>` and `Input<Artboard<nil>>` now type-check, matching the Rive editor and fixing nested/particle artboard scripts.
+- **Fix Mat2D multiplication typing** - `Mat2D * Vector` now narrows to `Vector` and `Mat2D * Mat2D` narrows to `Mat2D`, eliminating false transform-chain errors.
+- **Add current runtime API definitions** - added `Mat4`, typed listener payloads, Node keyboard/text callbacks, ViewModel image/index APIs, list removal APIs, canvas/GPU handles, Promise/async/decodeImage declarations, and `Interpolator<T>`.
+- **Refresh hover docs for changed APIs** - updated outdated `context:getImage` and `context:artboard` examples, and documented new payloads and runtime additions.
+- **Align local CLI wrappers with VS Code** - standalone `bin/rive` tools now use the bundled Rive definitions, SolverV2, and force-strict mode consistently.
+
 ## [1.1.3] - 2026-04-30
 
 ### Fixed — lint severity and duplicated hover content

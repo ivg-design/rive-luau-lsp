@@ -10,18 +10,24 @@
 # any LSP client (VS Code, Neovim, Emacs, or a Claude Code agent).
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+REPO_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 LUAU_LSP="${SCRIPT_DIR}/luau-lsp"
-RIVE_DEFS="${REPO_DIR}/definitions/rive-globals.d.luau"
-RIVE_DOCS="${REPO_DIR}/definitions/luau-api-docs.json"
+RIVE_DEFS="${REPO_DIR}/extension/definitions/rive-globals.d.luau"
+RIVE_DOCS="${REPO_DIR}/extension/definitions/luau-api-docs.json"
+
+if [ ! -x "${LUAU_LSP}" ] && [ -x "${REPO_DIR}/build/luau-lsp" ]; then
+    LUAU_LSP="${REPO_DIR}/build/luau-lsp"
+fi
 
 if [ ! -x "${LUAU_LSP}" ]; then
     echo "Error: luau-lsp binary not found at ${LUAU_LSP}" >&2
+    echo "Build with: cmake --build build --target Luau.LanguageServer.CLI -j\$(sysctl -n hw.ncpu)" >&2
     exit 1
 fi
 
 exec "${LUAU_LSP}" lsp \
     "--definitions=@rive=${RIVE_DEFS}" \
     "--docs=${RIVE_DOCS}" \
-    --no-flags-enabled \
+    --flag:LuauSolverV2=true \
+    --force-strict-mode \
     "$@"
