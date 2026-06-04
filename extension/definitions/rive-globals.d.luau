@@ -1950,7 +1950,9 @@ end
 
 --- GPU-backed offscreen canvas for custom render passes.
 declare class GPUCanvas
-    image: Image?
+    --- The rendered GPU canvas output as a normal Rive image.
+    --- Composite this in `draw()` with `renderer:drawImage(gpuCanvas.image, sampler, "srcOver", opacity)`.
+    image: Image
     width: number
     height: number
     format: ColorFormat

@@ -130,10 +130,8 @@ function drawCanvas(self: ShaderProbe)
 end
 
 function draw(self: ShaderProbe, renderer: Renderer)
-    local image = self.gpuCanvas.image
-    if image then
-        renderer:drawImage(image, self.imageSampler, "srcOver", 1)
-    end
+    local gpu = self.gpuCanvas
+    renderer:drawImage(gpu.image, self.imageSampler, "srcOver", 1)
 end
 
 return function(): Node<ShaderProbe>

@@ -2,6 +2,12 @@
 
 All notable changes to the Rive Luau LSP extension will be documented in this file.
 
+## [1.1.6] - 2026-06-03
+
+### Fixed - GPU canvas image typing
+
+- **Match Rive editor GPU compositing examples** - `GPUCanvas.image` is now typed as `Image`, so `renderer:drawImage(gpu.image, sampler, "srcOver", 1)` type-checks without a redundant nil guard.
+
 ## [1.1.5] - 2026-06-03
 
 ### Fixed - GPU shader scripting rollout parity
