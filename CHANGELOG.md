@@ -2,6 +2,15 @@
 
 All notable changes to the Rive Luau LSP extension will be documented in this file.
 
+## [1.1.5] - 2026-06-03
+
+### Fixed - GPU shader scripting rollout parity
+
+- **Add current shader lookup syntax** - `context:shader(name)` is now documented and typed as the current way to load WGSL shader assets; removed stale `context:loadShader()` and `context:preferredCanvasFormat()` from the API surface.
+- **Add GPU resource constructors and descriptors** - added typed `GPUBuffer.new`, `GPUTexture.new`, `GPUSampler.new`, `GPUPipeline.new`, `GPUBindGroupLayout.new`, and `GPUBindGroup.new` descriptors with designer-focused hover guidance.
+- **Align GPU canvas and render-pass signatures** - `GPUCanvas:resize(width, height)`, `GPUCanvas:beginRenderPass(...)`, `GPUBuffer:write(data, offset?)`, and render-pass draw/binding methods now match the current Rive C++ runtime.
+- **Expose shader texture input helpers** - added `Image:view()` and `Node.drawCanvas` so shader scripts can type-check the full load, render-pass, and composite workflow.
+
 ## [1.1.4] - 2026-05-12
 
 ### Fixed - current Rive runtime scripting parity

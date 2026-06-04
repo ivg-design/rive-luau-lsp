@@ -222,4 +222,34 @@ TEST_CASE("rive_definitions_cover_current_runtime_scripting_surface")
     checkRiveScriptFixture("tests/testdata/rive_runtime_surface.luau");
 }
 
+TEST_CASE("rive_definitions_cover_gpu_shader_scripting_surface")
+{
+    checkRiveScriptFixture("tests/testdata/rive_gpu_shader_surface.luau");
+}
+
+TEST_CASE("rive_definitions_reject_removed_gpu_shader_api_names")
+{
+    ScopedFastFlag sffNewSolver{FFlag::LuauSolverV2, true};
+
+    Client client;
+    auto workspace = WorkspaceFolder(&client, "$TEST_WORKSPACE", Uri::file(*Luau::FileUtils::getCurrentWorkingDirectory()), std::nullopt);
+    client.definitionsFiles.emplace("@rive", "./extension/definitions/rive-globals.d.luau");
+
+    workspace.frontend.setLuauSolverMode(Luau::SolverMode::New);
+    workspace.setupWithConfiguration(defaultTestClientConfiguration());
+    workspace.frontend.setLuauSolverMode(Luau::SolverMode::New);
+    workspace.isReady = true;
+
+    auto document = newDocument(workspace, "rive_removed_gpu_api.luau", R"(
+--!strict
+function init(self, context: Context): boolean
+    local _shader = context:loadShader("old_name")
+    local _format = context:preferredCanvasFormat()
+    return true
+end
+)");
+    auto result = workspace.frontend.check(workspace.fileResolver.getModuleName(document));
+    REQUIRE_MESSAGE(result.errors.size() >= 2, "Removed GPU shader API names should not type-check");
+}
+
 TEST_SUITE_END();

@@ -1543,17 +1543,25 @@ declare class DataContext
 end
 
 --- Options for `context:canvas()`.
+--- Omit the table or pass zero width/height when a Layout script needs to
+--- create a deferred canvas and size it later with `canvas:resize(width, height)`.
 export type CanvasOptions = {
-    width: number,
-    height: number,
-    clearColor: Color?,
+    width: number?,
+    height: number?,
+}
+
+--- Options for `canvas:beginFrame()`.
+export type CanvasFrameOptions = {
+    --- ARGB integer clear color. Use `0x00000000` for transparent black.
+    clearColor: number?,
 }
 
 --- Options for `context:gpuCanvas()`.
+--- Omit the table or pass zero width/height when the final layout size is not
+--- known in `init`; call `gpuCanvas:resize(width, height)` later.
 export type GPUCanvasOptions = {
-    width: number,
-    height: number,
-    sampleCount: number?,
+    width: number?,
+    height: number?,
 }
 
 --- Decoded image pixels returned by `context:decodeImage(blob.data)`.
@@ -1565,8 +1573,11 @@ export type DecodedImage = {
 
 --- Runtime GPU capability report returned by `context:features()`.
 export type GPUFeatures = {
+    --- BC compressed texture family support.
     bc: boolean,
+    --- ETC2 compressed texture family support.
     etc2: boolean,
+    --- ASTC compressed texture family support.
     astc: boolean,
     maxTextureSize2D: number,
     maxTextureSizeCube: number,
@@ -1575,6 +1586,7 @@ export type GPUFeatures = {
     texture3D: boolean,
     textureArrays: boolean,
     colorBufferFloat: boolean,
+    colorBufferHalfFloat: boolean,
     perTargetBlend: boolean,
     perTargetWriteMask: boolean,
     drawBaseInstance: boolean,
@@ -1583,6 +1595,232 @@ export type GPUFeatures = {
     maxUniformBufferSize: number,
     maxSamplers: number,
     maxSamples: number,
+}
+
+--- Color texture formats accepted by GPU textures, pipelines, and canvas views.
+export type ColorFormat =
+    "r8unorm" | "rg8unorm" | "rgba8unorm" | "bgra8unorm"
+    | "rgba16float" | "rg16float" | "r16float"
+    | "rgba32float" | "rgb10a2unorm" | "rg11b10ufloat"
+
+--- Depth and stencil texture formats.
+export type DepthFormat =
+    "depth16unorm" | "depth24plus-stencil8"
+    | "depth32float" | "depth32float-stencil8"
+
+--- Compressed texture formats. Check `context:features()` before using one.
+export type CompressedFormat =
+    "bc1-rgba-unorm" | "bc3-rgba-unorm" | "bc7-rgba-unorm"
+    | "etc2-rgb8unorm" | "etc2-rgba8unorm"
+    | "astc-4x4-unorm" | "astc-6x6-unorm" | "astc-8x8-unorm"
+
+export type TextureFormat = ColorFormat | DepthFormat | CompressedFormat
+export type TextureType = "2d" | "cube" | "3d" | "2d-array"
+export type BufferUsage = "vertex" | "index" | "uniform"
+export type BufferUsageArg = BufferUsage | { BufferUsage }
+export type CompareFunction =
+    "never" | "less" | "equal" | "less-equal"
+    | "greater" | "not-equal" | "greater-equal" | "always"
+export type Filter = "nearest" | "linear"
+export type WrapMode = "repeat" | "mirror-repeat" | "clamp-to-edge"
+export type VertexFormat =
+    "float32" | "float32x2" | "float32x3" | "float32x4"
+    | "uint8x4" | "unorm8x4" | "snorm8x4"
+    | "float16x2" | "float16x4"
+export type CullMode = "none" | "front" | "back"
+export type PrimitiveTopology =
+    "triangle-list" | "triangle-strip" | "line-list" | "line-strip" | "point-list"
+export type BlendFactor =
+    "zero" | "one" | "src" | "one-minus-src"
+    | "src-alpha" | "one-minus-src-alpha"
+    | "dst" | "one-minus-dst"
+    | "dst-alpha" | "one-minus-dst-alpha"
+    | "src-alpha-saturated" | "constant" | "one-minus-constant"
+export type BlendOp = "add" | "subtract" | "reverse-subtract" | "min" | "max"
+export type FaceWinding = "cw" | "ccw"
+export type StencilOp =
+    "keep" | "zero" | "replace" | "increment-clamp" | "decrement-clamp"
+    | "invert" | "increment-wrap" | "decrement-wrap"
+export type LoadOp = "clear" | "load"
+export type StoreOp = "store" | "discard"
+
+--- Four clear-color channels in `0..1` order: red, green, blue, alpha.
+export type GPUColor = { number }
+
+--- GPU buffer descriptor. Use immutable buffers for static vertex or index data.
+export type GPUBufferDesc = {
+    size: number,
+    usage: BufferUsageArg,
+    data: buffer?,
+    immutable: boolean?,
+    label: string?,
+}
+
+export type GPUTextureDesc = {
+    width: number,
+    height: number,
+    format: TextureFormat?,
+    type: TextureType?,
+    renderTarget: boolean?,
+    mipmaps: number?,
+    layers: number?,
+    sampleCount: number?,
+    label: string?,
+}
+
+export type GPUTextureViewDesc = {
+    dimension: TextureType?,
+    baseMipLevel: number?,
+    mipCount: number?,
+    baseLayer: number?,
+    layerCount: number?,
+}
+
+export type GPUTextureUploadDesc = {
+    data: buffer,
+    width: number?,
+    height: number?,
+    depth: number?,
+    x: number?,
+    y: number?,
+    z: number?,
+    mipLevel: number?,
+    layer: number?,
+    bytesPerRow: number?,
+    rowsPerImage: number?,
+}
+
+export type GPUSamplerDesc = {
+    min: Filter?,
+    mag: Filter?,
+    mipmap: Filter?,
+    wrapU: WrapMode?,
+    wrapV: WrapMode?,
+    wrapW: WrapMode?,
+    compare: CompareFunction?,
+    minLod: number?,
+    maxLod: number?,
+    maxAnisotropy: number?,
+}
+
+export type PipelineStage = Shader | {
+    module: Shader,
+    entryPoint: string?,
+}
+
+export type VertexAttribute = {
+    --- WGSL `@location(N)`.
+    slot: number,
+    format: VertexFormat,
+    offset: number?,
+}
+
+export type VertexBufferLayout = {
+    stride: number,
+    stepMode: ("vertex" | "instance")?,
+    attributes: { VertexAttribute },
+}
+
+export type BlendState = {
+    srcColor: BlendFactor?,
+    dstColor: BlendFactor?,
+    colorOp: BlendOp?,
+    srcAlpha: BlendFactor?,
+    dstAlpha: BlendFactor?,
+    alphaOp: BlendOp?,
+}
+
+export type ColorTarget = {
+    format: ColorFormat?,
+    blend: BlendState?,
+    --- Channel mask such as `"rgba"`, `"rgb"`, `"a"`, `"all"`, or `"none"`.
+    writeMask: string?,
+}
+
+export type DepthStencilState = {
+    format: DepthFormat?,
+    compare: CompareFunction?,
+    write: boolean?,
+    depthBias: number?,
+    depthBiasSlopeScale: number?,
+    depthBiasClamp: number?,
+}
+
+export type StencilFaceState = {
+    compare: CompareFunction?,
+    failOp: StencilOp?,
+    depthFailOp: StencilOp?,
+    passOp: StencilOp?,
+}
+
+export type GPUPipelineDesc = {
+    vertex: PipelineStage,
+    fragment: PipelineStage?,
+    vertexLayout: { VertexBufferLayout },
+    bindGroupLayouts: { GPUBindGroupLayout }?,
+    colorTargets: { ColorTarget }?,
+    depthStencil: DepthStencilState?,
+    stencilFront: StencilFaceState?,
+    stencilBack: StencilFaceState?,
+    stencilReadMask: number?,
+    stencilWriteMask: number?,
+    cullMode: CullMode?,
+    winding: FaceWinding?,
+    topology: PrimitiveTopology?,
+    sampleCount: number?,
+}
+
+export type GPUBindGroupLayoutDesc = {
+    shader: Shader,
+    groupIndex: number,
+    dynamicUBOs: { number }?,
+    label: string?,
+}
+
+export type UBOEntry = {
+    slot: number,
+    buffer: GPUBuffer,
+    offset: number?,
+    size: number?,
+}
+
+export type TextureEntry = {
+    slot: number,
+    view: GPUTextureView,
+}
+
+export type SamplerEntry = {
+    slot: number,
+    sampler: GPUSampler,
+}
+
+export type GPUBindGroupDesc = {
+    layout: GPUBindGroupLayout,
+    ubos: { UBOEntry }?,
+    textures: { TextureEntry }?,
+    samplers: { SamplerEntry }?,
+}
+
+export type ColorAttachment = {
+    --- Omit to draw directly into the receiving `GPUCanvas`.
+    view: GPUTextureView?,
+    --- MSAA resolve target. Usually `gpuCanvas:colorView()`.
+    resolveTarget: GPUTextureView?,
+    loadOp: LoadOp?,
+    storeOp: StoreOp,
+    clearColor: GPUColor?,
+}
+
+export type DepthStencilAttachment = {
+    view: GPUTextureView,
+    depthLoadOp: LoadOp?,
+    depthStoreOp: StoreOp,
+    depthClearValue: number?,
+}
+
+export type RenderPassDesc = {
+    color: { ColorAttachment }?,
+    depthStencil: DepthStencilAttachment?,
 }
 
 --- Promise status string returned by `promise:getStatus()`.
@@ -1612,59 +1850,99 @@ declare function await<T>(promise: Promise<T>): (boolean, T)
 --- Run a function in a coroutine and return a Promise for its result.
 declare function async<T>(callback: () -> (T | Promise<T>)): Promise<T>
 
---- Offscreen Rive canvas. Draw into it with `beginFrame()` / `endFrame()`.
+--- Offscreen Rive canvas. Draw normal Rive vector content into it with
+--- `beginFrame()` / `endFrame()`, then composite `canvas.image`.
 declare class Canvas
     image: Image
     width: number
     height: number
-    function beginFrame(self): Renderer
+    function beginFrame(self, options: CanvasFrameOptions?): Renderer
     function endFrame(self): ()
-    function resize(self, options: CanvasOptions): ()
+    function resize(self, width: number, height: number): ()
 end
 
---- GPU shader asset or source compiled by the runtime.
+--- Compiled WGSL shader asset loaded from the Rive file.
+---
+--- Get one with `context:shader("asset_name")` using the shader asset name
+--- without the `.wgsl` extension. A `Shader` is an opaque GPU module; use it in
+--- `GPUPipeline.new()` as a bare stage or `{ module = shader, entryPoint = "vsMain" }`.
 declare class Shader
 end
 
+--- Create and update GPU memory for vertices, indices, or uniforms.
 declare class GPUBuffer
     size: number
-    function write(self, byteOffset: number, source: buffer, sourceOffset: number?, size: number?): ()
+    --- Upload new bytes into a mutable buffer. Immutable buffers cannot be written after creation.
+    function write(self, data: buffer, offset: number?): ()
 end
 
+declare GPUBuffer: {
+    --- Create a GPU buffer. `usage` is usually `"vertex"`, `"index"`, or `"uniform"`.
+    new: (descriptor: GPUBufferDesc) -> GPUBuffer,
+}
+
+--- View into a GPU texture or canvas backing store.
 declare class GPUTextureView
-    format: string
+    format: TextureFormat
 end
 
+--- GPU texture for sampling, render targets, depth buffers, arrays, cubes, or 3D textures.
 declare class GPUTexture
     width: number
     height: number
-    format: string
-    function view(self, descriptor: any?): GPUTextureView
-    function upload(self, descriptor: any): ()
+    format: TextureFormat
+    function view(self, descriptor: GPUTextureViewDesc?): GPUTextureView
+    function upload(self, descriptor: GPUTextureUploadDesc): ()
 end
 
+declare GPUTexture: {
+    --- Create a GPU texture. Set `renderTarget = true` when the texture will be drawn into.
+    new: (descriptor: GPUTextureDesc) -> GPUTexture,
+}
+
+--- GPU sampler describing filtering and wrapping for shader texture reads.
 declare class GPUSampler
 end
 
+declare GPUSampler: {
+    new: (descriptor: GPUSamplerDesc?) -> GPUSampler,
+}
+
+--- Bind group layout reflected from a shader's WGSL `@group(index)` bindings.
 declare class GPUBindGroupLayout
 end
 
+declare GPUBindGroupLayout: {
+    new: (descriptor: GPUBindGroupLayoutDesc) -> GPUBindGroupLayout,
+}
+
+--- Runtime bundle of buffers, textures, and samplers bound to shader slots.
 declare class GPUBindGroup
 end
 
+declare GPUBindGroup: {
+    new: (descriptor: GPUBindGroupDesc) -> GPUBindGroup,
+}
+
+--- Compiled GPU pipeline: shader stages plus vertex layout, color/depth state, and topology.
 declare class GPUPipeline
     function getBindGroupLayout(self, index: number): GPUBindGroupLayout
 end
 
+declare GPUPipeline: {
+    new: (descriptor: GPUPipelineDesc) -> GPUPipeline,
+}
+
+--- Active GPU render pass. Set a pipeline, bind buffers/resources, draw, then finish.
 declare class GPURenderPass
     function setPipeline(self, pipeline: GPUPipeline): ()
-    function setVertexBuffer(self, slot: number, buffer: GPUBuffer, offset: number?, size: number?): ()
-    function setIndexBuffer(self, buffer: GPUBuffer, indexFormat: "uint16" | "uint32", offset: number?, size: number?): ()
+    function setVertexBuffer(self, slot: number, buffer: GPUBuffer): ()
+    function setIndexBuffer(self, buffer: GPUBuffer, indexFormat: ("uint16" | "uint32")?): ()
     function setBindGroup(self, index: number, group: GPUBindGroup, dynamicOffsets: { number }?): ()
-    function setViewport(self, x: number, y: number, width: number, height: number, minDepth: number?, maxDepth: number?): ()
+    function setViewport(self, x: number, y: number, width: number, height: number): ()
     function setScissorRect(self, x: number, y: number, width: number, height: number): ()
     function setStencilReference(self, reference: number): ()
-    function setBlendColor(self, color: Color): ()
+    function setBlendColor(self, r: number, g: number, b: number, a: number): ()
     function draw(self, vertexCount: number, instanceCount: number?, firstVertex: number?, firstInstance: number?): ()
     function drawIndexed(self, indexCount: number, instanceCount: number?, firstIndex: number?, baseVertex: number?, firstInstance: number?): ()
     function finish(self): ()
@@ -1672,15 +1950,13 @@ end
 
 --- GPU-backed offscreen canvas for custom render passes.
 declare class GPUCanvas
-    image: Image
+    image: Image?
     width: number
     height: number
-    sampleCount: number
-    hasDepth: boolean
-    format: string
-    function beginRenderPass(self, descriptor: any): GPURenderPass
+    format: ColorFormat
+    function beginRenderPass(self, descriptor: RenderPassDesc): GPURenderPass
     function colorView(self): GPUTextureView
-    function resize(self, options: GPUCanvasOptions): ()
+    function resize(self, width: number, height: number): ()
 end
 
 --- Runtime context passed to `init()`. Your bridge to the Rive editor.
@@ -1721,16 +1997,17 @@ declare class Context
     --- Audio.play(snd)
     --- ```
     function audio(self, name: string): AudioSource?
-    --- Create an offscreen canvas that can be drawn into and then composited as an Image.
-    function canvas(self, options: CanvasOptions): Canvas
-    --- Create a GPU canvas for custom GPU render passes.
-    function gpuCanvas(self, options: GPUCanvasOptions): GPUCanvas
+    --- Create an offscreen Rive canvas for normal vector drawing.
+    --- Omit the descriptor when a Layout script will size it later.
+    function canvas(self, options: CanvasOptions?): Canvas
+    --- Create a GPU canvas for custom shader render passes.
+    --- Omit the descriptor when the canvas should be resized later in layout.
+    function gpuCanvas(self, options: GPUCanvasOptions?): GPUCanvas
     --- Return GPU feature limits for the active runtime.
     function features(self): GPUFeatures
-    --- Return the preferred canvas color format for the current platform.
-    function preferredCanvasFormat(self): string
-    --- Load a shader asset by name. Returns nil if the shader is not found or cannot compile.
-    function loadShader(self, name: string): Shader?
+    --- Load a shader asset by name, without the `.wgsl` extension.
+    --- Returns nil if the shader is missing, not packaged, or unavailable in the current runtime channel.
+    function shader(self, name: string): Shader?
     --- Asynchronously decode encoded image bytes into premultiplied RGBA pixels.
     function decodeImage(self, data: buffer): Promise<DecodedImage>
     --- Request that the runtime re-evaluate this script on the next frame.
@@ -1757,6 +2034,9 @@ declare class Image
     width: number
     --- Height of the image in pixels.
     height: number
+    --- Return a GPU texture view for sampling this image in a shader.
+    --- Use it in `GPUBindGroup.new({ textures = {{ slot = N, view = image:view() }} })`.
+    function view(self): GPUTextureView
 end
 
 --- **What happens when sampling outside the image bounds.**
@@ -2244,6 +2524,7 @@ export type Node<T> = T & {
     init: ((self: T, context: Context) -> boolean)?,
     update: ((self: T) -> ())?,
     advance: ((self: T, seconds: number) -> boolean)?,
+    drawCanvas: ((self: T) -> ())?,
     draw: ((self: T, renderer: Renderer) -> ())?,
     pointerDown: ((self: T, event: PointerEvent) -> ())?,
     pointerMove: ((self: T, event: PointerEvent) -> ())?,

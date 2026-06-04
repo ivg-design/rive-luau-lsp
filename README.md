@@ -202,6 +202,7 @@ Complete Rive scripting API type definitions with educational documentation cove
 |----------|-------|
 | **Core** | `Vector`, `Color`, `Mat2D`, `Mat4`, `Promise` |
 | **Drawing** | `Path`, `Paint`, `Renderer`, `Gradient`, `PathMeasure`, `ContourMeasure`, `ImageSampler`, `Canvas`, `GPUCanvas` |
+| **GPU Shaders** | `Shader`, `GPUBuffer`, `GPUTexture`, `GPUTextureView`, `GPUSampler`, `GPUPipeline`, `GPUBindGroupLayout`, `GPUBindGroup`, `GPURenderPass` |
 | **Scene** | `NodeData`, `NodeReadData`, `Artboard`, `Animation` |
 | **Data Binding** | `ViewModel`, `Property<T>`, `PropertyImage`, `PropertyList`, `DataContext`, `Context`, `Data` namespace |
 | **Assets** | `Image`, `Blob`, `AudioSource`, `AudioSound`, `Audio` |

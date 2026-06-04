@@ -42,7 +42,9 @@ function init(self: RuntimeProbe, context: Context): boolean
         end
     end
 
-    return context:preferredCanvasFormat() ~= ""
+    local features = context:features()
+    print(features.maxSamples, features.colorBufferHalfFloat)
+    return true
 end
 
 function keyboardEvent(self: RuntimeProbe, event: KeyboardInvocation): boolean
