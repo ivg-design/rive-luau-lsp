@@ -73,3 +73,6 @@ rive-luau-vscode/node_modules/
 *.vsix
 *.tgz
 rive-luau-cli-*.zip
+
+# Agent-generated context files
+AGENTS.md
