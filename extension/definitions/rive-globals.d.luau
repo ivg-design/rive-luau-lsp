@@ -35,7 +35,11 @@ declare class Vector
     --- **The vertical value.** Positive = down, negative = up (screen coordinates).
     --- Read-only — use `Vector.xy()` to create a new vector with different values.
     y: number
-    --- Access by index: `vec[1]` is x, `vec[2]` is y.
+    --- **The depth value.** Always `0` for vectors created with `Vector.xy()`;
+    --- populated by 3D APIs that return a Vector (e.g. `Mat4:transformPoint`).
+    --- Editor-validated: `Vector.xy(1, 2).z` returns `0`.
+    z: number
+    --- Access by index: `vec[1]` is x, `vec[2]` is y, `vec[3]` is z.
     [number]: number
 
     -- Arithmetic operators (Luau native vector type)
@@ -44,6 +48,9 @@ declare class Vector
     function __mul(self, scalar: number): Vector
     function __div(self, scalar: number): Vector
     function __unm(self): Vector
+    --- Component-wise equality. Editor-validated:
+    --- `Vector.xy(1, 2) == Vector.xy(1, 2)` is `true`.
+    function __eq(self, other: Vector): boolean
 
     --- @deprecated Use `Vector.length(v)` instead.
     function length(self): number
@@ -151,14 +158,18 @@ declare Vector: {
 --- Each channel is 0-255 (like CSS/Photoshop). Colors are **immutable** —
 --- changing a channel returns a NEW color, leaving the original unchanged.
 ---
+--- At runtime a Color is a plain Luau **number** (an ARGB packed integer) —
+--- editor-validated: `type(Color.rgb(255, 0, 0))` is `"number"`, and raw hex
+--- literals like `0xFFFF0000` are valid Colors (`0xFFFF0000 == Color.rgb(255, 0, 0)`).
+--- This alias matches the Rive editor's own definitions (`export type Color = number`).
+---
 --- ```lua
 --- local red = Color.rgb(255, 0, 0)                -- solid red
 --- local semiTransparent = Color.rgba(0, 0, 255, 128)  -- half-transparent blue
 --- local faded = Color.opacity(red, 0.3)            -- 30% visible red
 --- local blend = Color.lerp(red, blue, 0.5)         -- purple (halfway)
 --- ```
-declare class Color
-end
+export type Color = number
 
 --- **Create and manipulate colors.**
 ---
@@ -221,6 +232,16 @@ declare Color: {
     --- local blended = Color.lerp(startColor, endColor, progress)
     --- ```
     lerp: (from: Color, to: Color, t: number) -> Color,
+
+    --- **Convert a Color to normalized floats** — returns an `{r, g, b, a}`
+    --- array table with values in the 0.0–1.0 range. Use with `clearColor`
+    --- in GPU render pass descriptors.
+    --- Editor-validated: `Color.toFloat(Color.rgba(255, 0, 0, 128))`
+    --- returns `{ 1.0, 0.0, 0.0, 0.502 }`.
+    --- ```lua
+    --- local cc = Color.toFloat(Color.rgba(255, 0, 0, 128))
+    --- ```
+    toFloat: (color: Color) -> { number },
 }
 
 --- 2D affine transformation matrix (3x2 components).
@@ -434,7 +455,6 @@ export type BlendMode =
     | "saturation"
     | "color"
     | "luminosity"
-    | string
 
 --- **How the shape is rendered** — filled solid or as an outline.
 ---
@@ -603,7 +623,10 @@ declare class Paint
     --- **Edge softness.** 0 = perfectly sharp edges, higher = softer/glowing.
     feather: number
     --- **Gradient fill.** Set a Gradient to fill with a color transition instead of solid color.
-    --- Set to `false` or nil to go back to solid color.
+    --- Editor-validated: assigning `false` clears an existing gradient (the
+    --- property reads back as `nil` afterwards). The declared type models the
+    --- read side; to clear via the type checker, use `paint:copy({ gradient = false })`
+    --- or a `PaintDefinition` with `gradient = false`.
     gradient: Gradient?
     --- **Make a copy of this paint** with optional changes.
     --- Great for creating variations without modifying the original.
@@ -695,7 +718,7 @@ declare class ContourMeasure
     isClosed: boolean
     --- Next contour in the path, or nil if this is the last one.
     --- Use to iterate: `while c do ... c = c.next end`
-    next: ContourMeasure
+    next: ContourMeasure?
     --- Get position and tangent at a distance along this contour.
     --- Returns (position, tangent) — tangent is a unit vector.
     function positionAndTangent(self, distance: number): (Vector, Vector)
@@ -832,7 +855,10 @@ declare class Path
     --- Call this to make a closed shape (triangle, polygon, etc).
     function close(self): ()
     --- **Erase everything** in this path, making it empty again.
-    --- Warning: don't call reset() and drawPath() in the same frame — wait one frame.
+    --- Warning: once a path has been drawn this frame, ANY mutation (reset,
+    --- moveTo, lineTo, cubicTo, add, ...) means you must wait until the next
+    --- frame before drawing it again. An unchanged path can be drawn multiple
+    --- times per frame.
     function reset(self): ()
     --- **Combine two paths together.** Adds all geometry from `other` into this path.
     --- Optionally apply a transform (move/rotate/scale) to the added geometry.
@@ -2482,13 +2508,22 @@ export type Output<T> = T
 ---
 --- **Lifecycle:** `init` → `update` → `advance` → `draw` (each frame)
 ---
---- **Required:** At minimum, implement `draw` to render content.
+--- **Required:** none of the methods are strictly required — `draw` is only
+--- needed to render content. Editor-validated: a draw-less Node script
+--- compiles, appears in the add-to-scene menu, places, and runs init/advance
+--- (omit `draw` for logic-only scripts to skip a per-repaint call).
 ---
 --- **Lifecycle methods:**
 --- - `init(self, context)` — called once on creation. Return false to disable.
 --- - `update(self)` — called when inputs change.
---- - `advance(self, seconds)` — called every frame with delta time. Return true to keep running.
---- - `draw(self, renderer)` — called every frame to render. Keep pure (no state changes)!
+--- - `advance(self, seconds)` — during playback: called every frame with real
+---   delta time; return `true` to keep receiving advance calls, `false` to
+---   unsubscribe from the advance loop (`draw` keeps firing independently).
+---   At design time (not playing): fires only as event-driven settle passes
+---   with `seconds = 0`, and the return value is ignored. Never divide by
+---   `seconds` or assume it is non-zero.
+--- - `draw(self, renderer)` — called on every repaint to render, independent
+---   of advance (can fire before the first advance). Keep pure (no state changes)!
 ---
 --- **Pointer methods (optional):**
 --- - `pointerDown(self, event)`, `pointerMove(self, event)`
@@ -2689,8 +2724,8 @@ export type Interpolator<T> = T & {
 -- TESTING FRAMEWORK
 -- =============================================================================
 
---- **Test assertion object.** Use `expect(value)` to create one, then chain with
---- a matcher to check if the value meets your expectation.
+--- **Test assertion object.** Call the `expect` parameter your test case
+--- receives to create one, then chain with a matcher (dot-call, not colon).
 ---
 --- ```lua
 --- expect(2 + 2).is(4)              -- passes: 4 equals 4
@@ -2703,15 +2738,15 @@ export type Expectation = {
     --- expect(result).is(42)
     --- expect(color).is(Color.rgb(255, 0, 0))
     --- ```
-    is: (self: Expectation, expected: any) -> (),
+    is: (expected: any) -> (),
     --- **Check greater than.** Passes if value > `n`.
-    greaterThan: (self: Expectation, n: number) -> (),
+    greaterThan: (n: number) -> (),
     --- **Check greater than or equal.** Passes if value >= `n`.
-    greaterThanOrEqual: (self: Expectation, n: number) -> (),
+    greaterThanOrEqual: (n: number) -> (),
     --- **Check less than.** Passes if value < `n`.
-    lessThan: (self: Expectation, n: number) -> (),
+    lessThan: (n: number) -> (),
     --- **Check less than or equal.** Passes if value <= `n`.
-    lessThanOrEqual: (self: Expectation, n: number) -> (),
+    lessThanOrEqual: (n: number) -> (),
     --- **Flip the check.** Makes any following matcher check the OPPOSITE.
     --- ```lua
     --- expect(value).never.is(nil)        -- passes if value is NOT nil
@@ -2720,28 +2755,45 @@ export type Expectation = {
     never: Expectation,
 }
 
+--- **Expectation factory** — the parameter passed to every test case callback.
+export type Expect = (value: any) -> Expectation
+
 --- **Test runner** — use to organize tests into groups and individual cases.
 ---
---- Received in the `setup()` function of Test scripts.
+--- Received in the `setup()` function of Test scripts. Matches the Rive
+--- editor's canonical convention (runtime-validated 2026-06-11): extract
+--- `group`/`case` with dot access and receive `expect` as the case-callback
+--- parameter — these are plain functions, not colon-call methods, and there
+--- is no global `expect`.
 ---
 --- ```lua
---- function setup(test)
----     test:group("Math helpers", function()
----         test:case("clamp works", function()
+--- function setup(test: Tester)
+---     local group = test.group
+---     local case = test.case
+---     group("Math helpers", function()
+---         case("clamp works", function(expect)
 ---             expect(math.clamp(5, 0, 10)).is(5)
 ---             expect(math.clamp(-1, 0, 10)).is(0)
 ---         end)
 ---     end)
 --- end
+---
+--- return function(): Tests
+---     return setup
+--- end
 --- ```
 export type Tester = {
     --- **Create a test group** — a named category that contains test cases.
-    --- Groups help organize related tests together.
-    group: (self: Tester, name: string, fn: () -> ()) -> (),
-    --- **Define a single test** with a name and a function containing expectations.
-    --- If any `expect(...)` call inside fails, the test fails.
-    case: (self: Tester, name: string, fn: () -> ()) -> (),
+    --- Groups help organize related tests together. Groups can nest.
+    group: (name: string, fn: () -> ()) -> (),
+    --- **Define a single test** with a name and a callback that receives the
+    --- `expect` factory. If any expectation inside fails, the test fails.
+    case: (name: string, fn: (expect: Expect) -> ()) -> (),
 }
+
+--- **Test script module type.** A Test script returns a factory producing the
+--- setup function: `return function(): Tests return setup end`.
+export type Tests = (test: Tester) -> ()
 
 -- =============================================================================
 -- GLOBAL FUNCTIONS
@@ -2765,14 +2817,6 @@ export type Tester = {
 --- end
 --- ```
 declare function late(): any
-
---- Create an expectation for testing. Use in Test scripts inside test.case().
---- ```lua
---- expect(2 + 2).is(4)
---- expect(value).greaterThan(0)
---- expect(result).never.is(nil)
---- ```
-declare function expect(value: any): Expectation
 
 -- ==========================================================================
 -- Data namespace
