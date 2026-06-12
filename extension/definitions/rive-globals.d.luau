@@ -824,6 +824,13 @@ export type PathData = {
 --- renderer:drawPath(path, myPaint)
 --- ```
 declare class Path
+    --- **Read commands by index.** Each entry is a `PathCommand` — editor-validated:
+    --- `path[2].type` returns the command type, `#path[2]` its point count.
+    --- ```lua
+    --- local cmd = path[2]
+    --- if cmd.type == "cubicTo" then print(#cmd, cmd[3].x) end
+    --- ```
+    [number]: PathCommand
     --- **Number of commands** currently in this path (moveTo, lineTo, cubicTo, close, etc).
     --- ```lua
     --- local count = #path

@@ -131,6 +131,13 @@ local function styleAndPathSurface()
     local path = Path.new()
     path:moveTo(Vector.xy(0, 0))
     path:cubicTo(Vector.xy(25, -40), Vector.xy(75, 40), Vector.xy(100, 0))
+
+    -- Path numeric indexing returns PathCommand (editor-validated)
+    local cmd = path[2]
+    if cmd.type == "cubicTo" then
+        print(#cmd, cmd[3].x)
+    end
+
     local contour = path:contours()
     while contour do
         print(contour.length)
