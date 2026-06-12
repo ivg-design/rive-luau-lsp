@@ -808,6 +808,11 @@ export type PathData = {
 --- 4. `close()` — connect back to where you started
 --- 5. Pass it to `renderer:drawPath(path, paint)` to make it visible
 ---
+--- **Winding matters for fills:** the current renderer fills clockwise-wound
+--- contours (y points down). A single counter-clockwise contour renders
+--- invisible with a fill paint (editor-validated 2026-06-12). Order your
+--- points clockwise; there is no fill-rule control in the scripting API.
+---
 --- ```lua
 --- -- Draw a triangle
 --- local path = Path.new()
