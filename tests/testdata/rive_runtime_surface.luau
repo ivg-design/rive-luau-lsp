@@ -110,6 +110,36 @@ function transformValue(self: RuntimeProbe, valueFrom: number, valueTo: number, 
     return valueFrom + (valueTo - valueFrom) * transform(self, factor)
 end
 
+local function styleAndPathSurface()
+    -- Color is a plain number (ARGB packed); raw hex literals are valid Colors
+    local rawHex: Color = 0xFFFF0000
+    local cc: { number } = Color.toFloat(Color.rgba(255, 0, 0, 128))
+    print(cc[1], cc[4])
+
+    local paint = Paint.with({ color = rawHex, style = "fill" })
+    local solid = paint:copy({ gradient = false })
+    paint.blendMode = "multiply"
+    print(solid.feather)
+
+    -- Vector equality operator, z component, and [3] indexing
+    local a = Vector.xy(1, 2)
+    if a == Vector.xy(1, 2) then
+        print(a.z, a[3])
+    end
+
+    -- ContourMeasure.next is optional; iteration requires the nil check
+    local path = Path.new()
+    path:moveTo(Vector.xy(0, 0))
+    path:cubicTo(Vector.xy(25, -40), Vector.xy(75, 40), Vector.xy(100, 0))
+    local contour = path:contours()
+    while contour do
+        print(contour.length)
+        contour = contour.next
+    end
+end
+
+styleAndPathSurface()
+
 local _nodeProtocol: Node<RuntimeProbe>? = nil
 local _listenerProtocol: ListenerAction<RuntimeProbe>? = nil
 local _interpolatorProtocol: Interpolator<RuntimeProbe>? = nil

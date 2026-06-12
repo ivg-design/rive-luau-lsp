@@ -2,6 +2,22 @@
 
 All notable changes to the Rive Luau LSP extension will be documented in this file.
 
+## [1.1.7] - 2026-06-12
+
+### Fixed - runtime-validated parity with the Rive Early Access editor
+
+All findings validated live in the Rive editor (2026-06-11) with Test-protocol runtime checks and instrumented probe scripts, cross-checked against the editor's built-in scripting reference.
+
+- **Add `Color.toFloat`** - converts a Color to a normalized `{r, g, b, a}` float table (0-1 range) for GPU `clearColor` usage; previously missing, so valid shader scripts failed analysis.
+- **`Color` is now `export type Color = number`** - matches the editor's own definitions and runtime behavior (`type(Color.rgb(255, 0, 0)) == "number"`); raw packed hex literals like `0xFFFF0000` now type-check as valid Colors.
+- **Close the `BlendMode` union** - removed the `| string` widening so blend-mode typos are caught in strict mode; default-mode behavior matches the editor (which does not flag them).
+- **Add `Vector.__eq` and `Vector.z`** - the equality operator and read-only `z` component (plus `vec[3]` indexing) exist at runtime; previously caused false operator/property errors.
+- **`ContourMeasure.next` is now optional** - typed `ContourMeasure?` to match its own documentation and runtime nil-at-last-contour behavior; iteration loops now require (and pass) the nil check.
+- **Rewrite `Tester`/`Expectation` to the editor's calling convention** - `group`/`case` are plain dot-call functions and `expect` is the case-callback parameter (runtime-validated); the previous colon-method typing and global `expect` declaration rejected the editor's own canonical test example. Added the missing `Tests` and `Expect` types so `return function(): Tests` type-checks.
+- **Correct `Node<T>` lifecycle hover docs** - `draw` is not required (draw-less scripts list, place, and run; validated in-editor); documented the playback-vs-design-mode advance model: `return false` unsubscribes from the playback advance loop only, `draw` fires independently on every repaint, and design-mode settle passes always pass `seconds = 0` and ignore the return value.
+- **Document the general path mutation rule** - any mutation after drawing (not just `reset()`) requires waiting a frame before drawing the path again.
+- **New test fixtures** - extended `rive_runtime_surface.luau` with the styling/vector/path surfaces and added `rive_test_protocol_surface.luau` covering the canonical Test-protocol script shape.
+
 ## [1.1.6] - 2026-06-03
 
 ### Fixed - GPU canvas image typing

@@ -227,6 +227,11 @@ TEST_CASE("rive_definitions_cover_gpu_shader_scripting_surface")
     checkRiveScriptFixture("tests/testdata/rive_gpu_shader_surface.luau");
 }
 
+TEST_CASE("rive_definitions_cover_test_protocol_surface")
+{
+    checkRiveScriptFixture("tests/testdata/rive_test_protocol_surface.luau");
+}
+
 TEST_CASE("rive_definitions_reject_removed_gpu_shader_api_names")
 {
     ScopedFastFlag sffNewSolver{FFlag::LuauSolverV2, true};
