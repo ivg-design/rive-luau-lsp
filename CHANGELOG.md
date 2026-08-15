@@ -2,6 +2,16 @@
 
 All notable changes to the Rive Luau LSP extension will be documented in this file.
 
+## [1.1.8] - 2026-08-14
+
+### Fixed - runtime v0.1.262 scripting surface parity
+
+- Remove the retired `Node.drawCanvas` callback; Canvas and GPUCanvas recording belongs in `draw(self, renderer)`.
+- Add callable declarations and focused coverage for `Vector.xyz`, `Vector.cross3`, vector buffer writes, `Mat4.lookAt`, `Mat4.ortho`, ranged `GPUBuffer:write`, global ViewModels, and `ViewModel:getFont`/`getBlob`.
+- Document library-scoped `context:blob` and `context:shader` references and preserve `GPUTextureView.format` as Early Access API surface.
+- Match the live Editor reference for `Mat2D`/`Mat4` equality; `AudioSound.pause`/`resume`/`play`; `PointerType` and `PointerEvent.type`; `KeyPhase`; the exact `KeyboardEvent`, `TextInput`, `FocusEvent`, `ReportedEvent`, `ViewModelChange`, and `NoneEvent` names; and the full connected/event/disconnected gamepad payloads, ListenerContext accessors, and Node callbacks. A live Editor analyzer probe accepted the complete surface, and Mat2D/Mat4 equality additionally passed runtime assertions. The Editor labels the newer listener/gamepad types Coming soon, so callbacks and AudioSound transport retain analyzer/reference—not runtime execution—evidence. Compatible legacy `*Invocation` aliases and callbacks remain accepted where type-compatible. `ReportedEventInvocation.delaySeconds` remains a separately nameable legacy type, but `ListenerContext:asReportedEvent()` returns the current empty `ReportedEvent`; negative coverage prevents the legacy field from leaking through that accessor.
+- Make `bin/rive/rive-luau-analyze` return status 1 whenever analyzer diagnostics are emitted, status 0 only for a clean result, and preserve genuine analyzer process failures and their output. Correct repository-checkout documentation to the `bin/rive/` executable paths while retaining the flattened `./rive-luau-analyze` path used by macOS/Linux release archives.
+
 ## [1.1.7] - 2026-06-12
 
 ### Fixed - runtime-validated parity with the Rive Early Access editor
@@ -134,7 +144,7 @@ Full parity audit using TypeCheckProbe.luau: every line the Rive editor accepts,
 ## [1.0.3] - 2026-03-13
 
 ### Added
-- Standalone CLI tools (`bin/rive-luau-analyze`, `bin/rive-luau-lsp`) for agent and CI usage without VS Code
+- Standalone CLI tools (`bin/rive/rive-luau-analyze`, `bin/rive/rive-luau-lsp`) for agent and CI usage without VS Code
 - Installable AI agent skill packages for Claude Code and OpenAI Codex (`skills/`)
 - Agent integration documentation in README
 

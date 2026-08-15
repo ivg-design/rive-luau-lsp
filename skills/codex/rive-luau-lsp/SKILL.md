@@ -10,15 +10,15 @@ You have access to a Rive Luau type checker for validating scripts against the c
 ## Type Check a Script
 
 ```bash
-rive-luau-lsp/bin/rive-luau-analyze <file.luau>
+rive-luau-lsp/bin/rive/rive-luau-analyze <file.luau>
 ```
 
-Exit code 0 = valid. Non-zero = errors found in stderr. Fix all errors before delivering.
+Exit code 0 means no diagnostics. Non-zero means diagnostics were emitted or analysis itself failed; inspect the diagnostic output and fix all errors before delivering.
 
 ## Type Check a Directory
 
 ```bash
-rive-luau-lsp/bin/rive-luau-analyze <directory/>
+rive-luau-lsp/bin/rive/rive-luau-analyze <directory/>
 ```
 
 ## API Reference
@@ -26,7 +26,7 @@ rive-luau-lsp/bin/rive-luau-analyze <directory/>
 Read the type definitions before writing Rive Luau code:
 
 ```
-rive-luau-lsp/definitions/rive-globals.d.luau
+rive-luau-lsp/extension/definitions/rive-globals.d.luau
 ```
 
 This file defines every Rive API type with documentation in `---` comments.
@@ -36,7 +36,7 @@ This file defines every Rive API type with documentation in `---` comments.
 1. Read `rive-globals.d.luau` to understand available APIs
 2. Write the script following the type definitions
 3. Run `rive-luau-analyze` to validate
-4. Fix any errors reported in stderr
+4. Fix any errors in the diagnostic output
 5. Re-validate until exit code 0
 6. Never deliver a script that hasn't passed type checking
 

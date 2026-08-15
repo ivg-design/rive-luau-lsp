@@ -13,15 +13,15 @@ You have access to a Rive Luau language server and type checker.
 ### Type Check a Script
 
 ```bash
-${CLAUDE_SKILL_DIR}/../../../bin/rive-luau-analyze <file.luau>
+${CLAUDE_SKILL_DIR}/../../../bin/rive/rive-luau-analyze <file.luau>
 ```
 
-Exit code 0 = no errors. Non-zero = type errors in stderr. Fix all errors before delivering.
+Exit code 0 means no diagnostics. Non-zero means diagnostics were emitted or analysis itself failed; inspect the diagnostic output and fix all errors before delivering.
 
 ### Type Check a Directory
 
 ```bash
-${CLAUDE_SKILL_DIR}/../../../bin/rive-luau-analyze <directory/>
+${CLAUDE_SKILL_DIR}/../../../bin/rive/rive-luau-analyze <directory/>
 ```
 
 ### Read the API Reference
@@ -29,7 +29,7 @@ ${CLAUDE_SKILL_DIR}/../../../bin/rive-luau-analyze <directory/>
 The complete Rive scripting API with documentation:
 
 ```bash
-${CLAUDE_SKILL_DIR}/../../../definitions/rive-globals.d.luau
+${CLAUDE_SKILL_DIR}/../../../extension/definitions/rive-globals.d.luau
 ```
 
 **Read this file before writing any Rive Luau code.** It defines every type, method, property, and constructor with educational `---` doc comments.
@@ -39,7 +39,7 @@ ${CLAUDE_SKILL_DIR}/../../../definitions/rive-globals.d.luau
 1. **Read** `rive-globals.d.luau` to understand available APIs
 2. **Write** the script following the type definitions
 3. **Run** `rive-luau-analyze` to validate
-4. **Fix** any errors reported in stderr
+4. **Fix** any errors in the diagnostic output
 5. **Re-validate** until exit code 0
 6. **Never deliver a script that hasn't passed type checking**
 

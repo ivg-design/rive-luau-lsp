@@ -106,30 +106,26 @@ function advance(self: ShaderProbe, seconds: number): boolean
     return true
 end
 
-function drawCanvas(self: ShaderProbe)
-    if not self.pipeline or not self.vertices then
-        return
-    end
-
-    local pass = self.gpuCanvas:beginRenderPass({
-        color = {{
-            loadOp = "clear",
-            storeOp = "store",
-            clearColor = { 0, 0, 0, 0 },
-        }},
-    })
-
-    pass:setPipeline(self.pipeline)
-    pass:setVertexBuffer(0, self.vertices)
-    if self.bindGroup then
-        pass:setBindGroup(0, self.bindGroup, { 0 })
-    end
-    pass:setBlendColor(1, 1, 1, 1)
-    pass:draw(self.vertexCount, 1, 0, 0)
-    pass:finish()
-end
-
 function draw(self: ShaderProbe, renderer: Renderer)
+    if self.pipeline and self.vertices then
+        local pass = self.gpuCanvas:beginRenderPass({
+            color = {{
+                loadOp = "clear",
+                storeOp = "store",
+                clearColor = { 0, 0, 0, 0 },
+            }},
+        })
+
+        pass:setPipeline(self.pipeline)
+        pass:setVertexBuffer(0, self.vertices)
+        if self.bindGroup then
+            pass:setBindGroup(0, self.bindGroup, { 0 })
+        end
+        pass:setBlendColor(1, 1, 1, 1)
+        pass:draw(self.vertexCount, 1, 0, 0)
+        pass:finish()
+    end
+
     local gpu = self.gpuCanvas
     renderer:drawImage(gpu.image, self.imageSampler, "srcOver", 1)
 end
@@ -149,7 +145,6 @@ return function(): Node<ShaderProbe>
         vertexCount = 0,
         init = init,
         advance = advance,
-        drawCanvas = drawCanvas,
         draw = draw,
     }
 end

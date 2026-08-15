@@ -14,7 +14,7 @@ function init(self: RuntimeProbe, context: Context): boolean
     self.canvas = context:canvas({width = 64, height = 64})
 
     local blob = context:blob("encoded")
-    if blob then
+    if blob and blob.data then
         local promise = context:decodeImage(blob.data)
         self.promise = promise
         promise:andThen(function(decoded)
@@ -94,7 +94,10 @@ function performAction(self: RuntimeProbe, context: ListenerContext)
     elseif context:isReportedEvent() then
         local reported = context:asReportedEvent()
         if reported then
-            print(reported.delaySeconds)
+            -- Current Editor ReportedEvent is an opaque, empty payload.
+            -- The older ReportedEventInvocation.delaySeconds declaration is a
+            -- separate legacy type and is not returned by this accessor.
+            print(reported)
         end
     elseif context:isNone() then
         local none = context:asNone()

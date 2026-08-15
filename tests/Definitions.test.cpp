@@ -3,6 +3,8 @@
 #include "Platform/RobloxPlatform.hpp"
 #include "LuauFileUtils.hpp"
 
+#include <algorithm>
+
 using namespace Luau::LanguageServer;
 
 TEST_SUITE_BEGIN("Definitions");
@@ -222,6 +224,16 @@ TEST_CASE("rive_definitions_cover_current_runtime_scripting_surface")
     checkRiveScriptFixture("tests/testdata/rive_runtime_surface.luau");
 }
 
+TEST_CASE("rive_definitions_cover_runtime_262_callable_surface")
+{
+    checkRiveScriptFixture("tests/testdata/rive_runtime_new_api_surface.luau");
+}
+
+TEST_CASE("rive_definitions_cover_live_editor_reference_parity_surface")
+{
+    checkRiveScriptFixture("tests/testdata/rive_editor_reference_parity_surface.luau");
+}
+
 TEST_CASE("rive_definitions_cover_gpu_shader_scripting_surface")
 {
     checkRiveScriptFixture("tests/testdata/rive_gpu_shader_surface.luau");
@@ -255,6 +267,75 @@ end
 )");
     auto result = workspace.frontend.check(workspace.fileResolver.getModuleName(document));
     REQUIRE_MESSAGE(result.errors.size() >= 2, "Removed GPU shader API names should not type-check");
+}
+
+TEST_CASE("rive_definitions_reject_retired_and_separate_legacy_surfaces")
+{
+    ScopedFastFlag sffNewSolver{FFlag::LuauSolverV2, true};
+
+    Client client;
+    auto workspace = WorkspaceFolder(&client, "$TEST_WORKSPACE", Uri::file(*Luau::FileUtils::getCurrentWorkingDirectory()), std::nullopt);
+    client.definitionsFiles.emplace("@rive", "./extension/definitions/rive-globals.d.luau");
+
+    workspace.frontend.setLuauSolverMode(Luau::SolverMode::New);
+    workspace.setupWithConfiguration(defaultTestClientConfiguration());
+    workspace.frontend.setLuauSolverMode(Luau::SolverMode::New);
+    workspace.isReady = true;
+
+    auto document = newDocument(workspace, "rive_removed_draw_canvas.luau", R"(
+--!strict
+local node: Node<{}> = {}
+local _legacy = node.drawCanvas
+
+function checkReportedEvent(context: ListenerContext)
+    local reported = context:asReportedEvent()
+    if reported then
+        local _legacyDelay = reported.delaySeconds
+    end
+end
+)");
+    auto result = workspace.frontend.check(workspace.fileResolver.getModuleName(document));
+    REQUIRE_MESSAGE(result.errors.size() >= 2, "Retired drawCanvas and the legacy-only ReportedEvent.delaySeconds field should not type-check");
+}
+
+TEST_CASE("rive_definitions_cover_hover_and_completion_surface")
+{
+    ScopedFastFlag sffNewSolver{FFlag::LuauSolverV2, true};
+
+    Client client;
+    auto workspace = WorkspaceFolder(&client, "$TEST_WORKSPACE", Uri::file(*Luau::FileUtils::getCurrentWorkingDirectory()), std::nullopt);
+    client.definitionsFiles.emplace("@rive", "./extension/definitions/rive-globals.d.luau");
+
+    workspace.frontend.setLuauSolverMode(Luau::SolverMode::New);
+    workspace.setupWithConfiguration(defaultTestClientConfiguration());
+    workspace.frontend.setLuauSolverMode(Luau::SolverMode::New);
+    workspace.isReady = true;
+
+    auto [completionSource, completionPosition] = sourceWithMarker(R"(
+local value = Vector.|
+)");
+    auto completionUri = newDocument(workspace, "rive_completion_surface.luau", completionSource);
+    lsp::CompletionParams completionParams;
+    completionParams.textDocument = lsp::TextDocumentIdentifier{completionUri};
+    completionParams.position = completionPosition;
+    auto completions = workspace.completion(completionParams, nullptr);
+
+    auto xyz = std::find_if(completions.begin(), completions.end(), [](const lsp::CompletionItem& item) { return item.label == "xyz"; });
+    REQUIRE(xyz != completions.end());
+    REQUIRE(xyz->documentation);
+    CHECK(xyz->documentation->value.find("3D") != std::string::npos);
+
+    auto [hoverSource, hoverPosition] = sourceWithMarker(R"(
+local value = Vector.|cross3(Vector.xyz(1, 0, 0), Vector.xyz(0, 1, 0))
+)");
+    auto hoverUri = newDocument(workspace, "rive_hover_surface.luau", hoverSource);
+    lsp::HoverParams hoverParams;
+    hoverParams.textDocument = lsp::TextDocumentIdentifier{hoverUri};
+    hoverParams.position = hoverPosition;
+    auto hover = workspace.hover(hoverParams, nullptr);
+
+    REQUIRE(hover);
+    CHECK(hover->contents.value.find("3D cross product") != std::string::npos);
 }
 
 TEST_SUITE_END();
