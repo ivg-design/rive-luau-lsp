@@ -9,12 +9,19 @@
 #   rive-luau-analyze effects/
 #   rive-luau-analyze effects/Glassifier/Glassifier.luau --luaurc /path/to/.luaurc
 #
-# Exit code 0 = no errors, non-zero = errors found
+# Exit code 0 = no diagnostics; non-zero = diagnostics or analyzer failure
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 LUAU_LSP="${SCRIPT_DIR}/luau-lsp"
-RIVE_DEFS="${REPO_DIR}/extension/definitions/rive-globals.d.luau"
+
+# Release archives flatten the binary, wrapper, and definitions into one
+# directory. Repository checkouts keep definitions under extension/.
+if [ -f "${SCRIPT_DIR}/rive-globals.d.luau" ]; then
+    RIVE_DEFS="${SCRIPT_DIR}/rive-globals.d.luau"
+else
+    RIVE_DEFS="${REPO_DIR}/extension/definitions/rive-globals.d.luau"
+fi
 
 if [ ! -x "${LUAU_LSP}" ] && [ -x "${REPO_DIR}/build/luau-lsp" ]; then
     LUAU_LSP="${REPO_DIR}/build/luau-lsp"
@@ -39,8 +46,35 @@ if [ $# -eq 0 ]; then
     exit 1
 fi
 
-exec "${LUAU_LSP}" analyze \
+ANALYZE_OUTPUT="$(mktemp "${TMPDIR:-/tmp}/rive-luau-analyze.XXXXXX")"
+if [ -z "${ANALYZE_OUTPUT}" ]; then
+    echo "Error: unable to create analyzer output capture" >&2
+    exit 1
+fi
+
+cleanup() {
+    rm -f -- "${ANALYZE_OUTPUT}"
+}
+trap cleanup EXIT
+
+"${LUAU_LSP}" analyze \
     "--definitions=@rive=${RIVE_DEFS}" \
     --flag:LuauSolverV2=true \
     --force-strict-mode \
-    "$@"
+    "$@" >"${ANALYZE_OUTPUT}" 2>&1
+ANALYZE_STATUS=$?
+
+# luau-lsp currently exits 0 even when analyze emits diagnostics. Replay the
+# complete output, preserve genuine process failures, and make diagnostics
+# actionable to shell/CI callers through exit status 1.
+cat "${ANALYZE_OUTPUT}"
+
+if [ "${ANALYZE_STATUS}" -ne 0 ]; then
+    exit "${ANALYZE_STATUS}"
+fi
+
+if [ -s "${ANALYZE_OUTPUT}" ]; then
+    exit 1
+fi
+
+exit 0

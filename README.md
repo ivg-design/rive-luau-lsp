@@ -76,13 +76,19 @@ git clone https://github.com/ivg-design/rive-luau-lsp.git
 cd rive-luau-lsp
 
 # Analyze a single file
-bin/rive-luau-analyze path/to/script.luau
+bin/rive/rive-luau-analyze path/to/script.luau
 
 # Analyze an entire directory
-bin/rive-luau-analyze path/to/effects/
+bin/rive/rive-luau-analyze path/to/effects/
 
 # Start the LSP server (for editor/agent integration via stdio)
-bin/rive-luau-lsp
+bin/rive/rive-luau-lsp
+```
+
+These are repository-checkout paths. The macOS and Linux CLI release archives are flat: after extracting one, run `./rive-luau-analyze`. The archive does not contain the convenience LSP wrapper; start its binary with the bundled definitions and docs:
+
+```bash
+./luau-lsp lsp --definitions=@rive=./rive-globals.d.luau --docs=./luau-api-docs.json --flag:LuauSolverV2=true --force-strict-mode
 ```
 
 ### `rive-luau-analyze` — Static Analysis
@@ -91,13 +97,13 @@ Runs type checking, linting, and diagnostics on Rive Luau files. Automatically l
 
 ```bash
 # Check a script for type errors
-bin/rive-luau-analyze effects/Glassifier/Glassifier.luau
+bin/rive/rive-luau-analyze effects/Glassifier/Glassifier.luau
 
 # Check all scripts in a directory (respects .luaurc if present)
-bin/rive-luau-analyze effects/
+bin/rive/rive-luau-analyze effects/
 
 # Pass additional luau-lsp flags
-bin/rive-luau-analyze myScript.luau --formatter=plain
+bin/rive/rive-luau-analyze myScript.luau --formatter=plain
 ```
 
 ### `rive-luau-lsp` — Language Server
@@ -106,10 +112,10 @@ Starts the full language server over stdio with Rive definitions and documentati
 
 ```bash
 # Start LSP server
-bin/rive-luau-lsp
+bin/rive/rive-luau-lsp
 
 # With additional flags
-bin/rive-luau-lsp --flag:LuauSomeFlag=true
+bin/rive/rive-luau-lsp --flag:LuauSomeFlag=true
 ```
 
 ### Agent Integration Example
@@ -118,7 +124,7 @@ An AI coding agent can use the analyze tool to validate Rive Luau code:
 
 ```bash
 # After generating or modifying a script, validate it:
-result=$(bin/rive-luau-analyze generated_script.luau 2>&1)
+result=$(bin/rive/rive-luau-analyze generated_script.luau 2>&1)
 if [ $? -ne 0 ]; then
     echo "Type errors found:"
     echo "$result"
@@ -171,7 +177,7 @@ Point your editor's LSP configuration to the language server:
 ```json
 {
   "luau": {
-    "command": "/path/to/rive-luau-lsp/bin/rive-luau-lsp",
+    "command": "/path/to/rive-luau-lsp/bin/rive/rive-luau-lsp",
     "filetypes": ["luau"]
   }
 }
@@ -203,7 +209,7 @@ code --install-extension rive-luau-*.vsix
 
 ## What's Included
 
-### Language Server (`bin/luau-lsp`)
+### Language Server (`bin/rive/luau-lsp`)
 
 A modified build of [luau-lsp](https://github.com/JohnnyMorganz/luau-lsp) by JohnnyMorganz with Rive-specific changes:
 
@@ -211,7 +217,7 @@ A modified build of [luau-lsp](https://github.com/JohnnyMorganz/luau-lsp) by Joh
 - **Local-only documentation** — All hover tooltips render locally without "Learn More" links to external websites.
 - **Data namespace type resolution** — `Input<Data.X>` resolves in type annotations via a namespace fallback system, matching Rive editor syntax. `Data.X.new()` returns a typed ViewModel instance with dynamic property access.
 
-### Type Definitions (`definitions/rive-globals.d.luau`)
+### Type Definitions (`extension/definitions/rive-globals.d.luau`)
 
 Complete Rive scripting API type definitions with educational documentation covering:
 
@@ -266,12 +272,10 @@ rive-luau-lsp/
 ├── LICENSE                        # MIT
 ├── ATTRIBUTION.md                 # Credits to upstream projects
 ├── bin/
-│   ├── luau-lsp                   # Language server binary (macOS)
-│   ├── rive-luau-analyze          # CLI: static analysis & type checking
-│   └── rive-luau-lsp             # CLI: start LSP server (stdio)
-├── definitions/
-│   ├── rive-globals.d.luau        # Rive API type definitions (with docs)
-│   └── luau-api-docs.json         # Standard library documentation
+│   └── rive/
+│       ├── luau-lsp               # Language server binary (macOS)
+│       ├── rive-luau-analyze      # CLI: static analysis & type checking
+│       └── rive-luau-lsp          # CLI: start LSP server (stdio)
 └── extension/                     # VS Code extension source
     ├── package.json               # Extension manifest
     ├── extension.js               # Extension entry point

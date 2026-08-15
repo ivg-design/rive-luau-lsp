@@ -22,6 +22,8 @@ namespace Luau::LanguageServer
 ClientConfiguration defaultTestClientConfiguration()
 {
     ClientConfiguration config;
+    config.platform.type = LSPPlatformConfig::Roblox;
+    config.types.roblox = true;
     config.sourcemap.enabled = false;
     config.index.enabled = false;
     return config;

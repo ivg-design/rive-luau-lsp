@@ -66,6 +66,10 @@ declare class Vector
     function dot(self, other: Vector): number
     --- @deprecated Use `Vector.lerp(from, to, t)` instead.
     function lerp(self, other: Vector, t: number): Vector
+    --- Write x, y, and z as three float32 values (12 bytes) into `output`.
+    function writeToBuffer(self, output: buffer, byteOffset: number): ()
+    --- Write x, y, z, and `w` as four float32 values (16 bytes) into `output`.
+    function writeVec4(self, output: buffer, byteOffset: number, w: number): ()
 end
 
 --- **Create and work with 2D points and directions.**
@@ -86,6 +90,10 @@ declare Vector: {
     --- local size = Vector.xy(width, height)
     --- ```
     xy: (x: number, y: number) -> Vector,
+
+    --- **Create a 3D point or direction** from x, y, and z components.
+    --- This is primarily used by Mat4 and Early Access GPU scripting.
+    xyz: (x: number, y: number, z: number) -> Vector,
 
     --- **Create a zero vector** (0, 0). Useful as a default or starting point.
     origin: () -> Vector,
@@ -133,6 +141,10 @@ declare Vector: {
     --- Positive = `b` is clockwise from `a`, negative = counterclockwise.
     --- The value is the area of the parallelogram formed by the two vectors.
     cross: (a: Vector, b: Vector) -> number,
+
+    --- **3D cross product.** Returns a Vector perpendicular to `a` and `b`.
+    --- Use `cross` for the scalar 2D perpendicular-dot operation instead.
+    cross3: (a: Vector, b: Vector) -> Vector,
 
     --- **Move a point** by adding a scaled direction. Shorthand for `a + b * scale`.
     --- Perfect for physics: `pos = Vector.scaleAndAdd(pos, velocity, deltaTime)`
@@ -280,6 +292,9 @@ declare class Mat2D
     -- Operators: mat * mat (combine transforms), mat * vec (transform point)
     __mul: ((self: Mat2D, other: Mat2D) -> Mat2D) & ((self: Mat2D, other: Vector) -> Vector)
 
+    --- Return true when all six matrix components are equal.
+    function __eq(self, other: Mat2D): boolean
+
     --- Compute the inverse of this matrix. Returns nil if the matrix is singular (not invertible).
     --- ```lua
     --- local inv = mat:invert()
@@ -365,6 +380,9 @@ declare class Mat4
     --- Combine two Mat4 transforms.
     function __mul(self, other: Mat4): Mat4
 
+    --- Return true when all 16 matrix components are equal.
+    function __eq(self, other: Mat4): boolean
+
     --- Return an inverse matrix, or nil if this matrix is singular.
     function invert(self): Mat4?
     --- Return an inverse optimized for affine transforms, or nil if singular.
@@ -407,6 +425,10 @@ declare Mat4: {
     fromRotationZ: (radians: number) -> Mat4,
     perspective: (fovYRadians: number, aspect: number, near: number, far: number) -> Mat4,
     perspectiveReverseZ: (fovYRadians: number, aspect: number, near: number) -> Mat4,
+    --- Create a right-handed view matrix from camera position, target, and up.
+    lookAt: (eye: Vector, center: Vector, up: Vector) -> Mat4,
+    --- Create a right-handed orthographic projection with depth in [0, 1].
+    ortho: (left: number, right: number, bottom: number, top: number, near: number, far: number) -> Mat4,
     multiply: (output: Mat4, a: Mat4, b: Mat4) -> Mat4,
     multiplyAffine: (output: Mat4, a: Mat4, b: Mat4) -> Mat4,
     invert: (output: Mat4, input: Mat4) -> boolean,
@@ -1153,6 +1175,18 @@ end
 -- EVENTS
 -- =============================================================================
 
+--- Pointer interaction kind reported by the current Editor reference.
+--- The Editor currently labels this event-kind surface Coming soon.
+export type PointerType =
+    "pointerEnter"
+    | "pointerExit"
+    | "pointerDown"
+    | "pointerUp"
+    | "pointerMove"
+    | "click"
+    | "pointerDrag"
+    | "unknown"
+
 --- Pointer input event for mouse/touch interaction.
 ---
 --- Received in `pointerDown`, `pointerMove`, `pointerUp`, `pointerExit` callbacks.
@@ -1172,6 +1206,9 @@ declare class PointerEvent
     position: Vector
     --- Pointer identifier (0 for mouse, unique per finger for multitouch).
     id: number
+    --- Current Editor event kind. This is distinct from the callback name so
+    --- listener-action payloads can describe enter/click/drag events too.
+    type: PointerType
     --- Consume this event. Pass `true` for translucent hit (event still reaches nodes behind).
     --- ```lua
     --- event:hit()      -- opaque: blocks nodes behind
@@ -1191,8 +1228,12 @@ declare PointerEvent: {
     new: (id: number, position: Vector) -> PointerEvent,
 }
 
---- Keyboard payload passed through listener actions and drawable node input.
-declare class KeyboardInvocation
+--- Phase of a keyboard interaction in the current Editor reference.
+--- The Editor currently labels keyboard events Coming soon.
+export type KeyPhase = "down" | "repeat" | "up"
+
+--- Keyboard payload exposed by the current Editor reference.
+declare class KeyboardEvent
     --- Numeric Rive key code for the key that changed.
     key: number
     --- True when Shift was held.
@@ -1204,30 +1245,138 @@ declare class KeyboardInvocation
     --- True when Command/Meta was held.
     meta: boolean
     --- `"down"` for key press, `"repeat"` for key repeat, `"up"` for release.
-    phase: "down" | "repeat" | "up"
+    phase: KeyPhase
 end
 
+--- Legacy name retained as an exact alias of `KeyboardEvent`.
+export type KeyboardInvocation = KeyboardEvent
+
 --- Text input payload. This is text after keyboard layout/input-method handling.
-declare class TextInputInvocation
+declare class TextInput
     text: string
 end
 
+--- Legacy name retained as an exact alias of `TextInput`.
+export type TextInputInvocation = TextInput
+
 --- Focus-change payload for listener actions.
-declare class FocusInvocation
+declare class FocusEvent
     isFocus: boolean
 end
 
---- Reported-event payload for listener actions.
+--- Legacy name retained as an exact alias of `FocusEvent`.
+export type FocusInvocation = FocusEvent
+
+--- Reported-event payload in the current Editor reference. The current
+--- reference intentionally exposes no members.
+declare class ReportedEvent
+end
+
+--- Legacy reported-event payload retained for scripts that referenced the
+--- earlier LSP-only `delaySeconds` field. ListenerContext returns the exact
+--- current `ReportedEvent` type; no runtime support for this legacy field is
+--- implied.
 declare class ReportedEventInvocation
     --- Delay reported by the source event, in seconds.
     delaySeconds: number
 end
 
 --- ViewModel-change payload for listener actions.
-declare class ViewModelChangeInvocation
+declare class ViewModelChange
 end
 
---- Gamepad payload for listener actions.
+--- Legacy name retained as an exact alias of `ViewModelChange`.
+export type ViewModelChangeInvocation = ViewModelChange
+
+--- Mapping mode reported by current Rive gamepad event payloads.
+export type GamepadMappingKind = "standard" | "unknown"
+
+--- Full gamepad state supplied when a device is connected.
+--- The live editor reference currently labels this callback surface Coming soon;
+--- declarations provide analyzer parity without asserting runtime rollout.
+declare class GamepadConnected
+    deviceId: number
+    buttonMask: number
+    buttons: { number }
+    axes: { number }
+    isStandardMapping: boolean
+    mapping: GamepadMappingKind
+    gamepadMapping: number
+    function buttonPressed(self, index: number): boolean
+    function buttonValue(self, index: number): number
+    function axis(self, index: number): number
+    west: boolean
+    south: boolean
+    north: boolean
+    east: boolean
+    leftShoulder: boolean
+    rightShoulder: boolean
+    back: boolean
+    forward: boolean
+    leftStickButton: boolean
+    rightStickButton: boolean
+    dpadUp: boolean
+    dpadDown: boolean
+    dpadLeft: boolean
+    dpadRight: boolean
+    start: boolean
+    leftStick: Vector
+    rightStick: Vector
+    leftTrigger: number
+    rightTrigger: number
+    leftTriggerPressed: boolean
+    rightTriggerPressed: boolean
+end
+
+--- Full post-update gamepad state plus the field changed by this event.
+declare class GamepadEvent
+    changeKind: string
+    changeIndex: number
+    changeValue: number
+    hasStandardButtonIntent: boolean
+    hasStandardAxisIntent: boolean
+    intentButton: string?
+    intentAxis: string?
+    deviceId: number
+    buttonMask: number
+    buttons: { number }
+    axes: { number }
+    isStandardMapping: boolean
+    mapping: GamepadMappingKind
+    gamepadMapping: number
+    function buttonPressed(self, index: number): boolean
+    function buttonValue(self, index: number): number
+    function axis(self, index: number): number
+    west: boolean
+    south: boolean
+    north: boolean
+    east: boolean
+    leftShoulder: boolean
+    rightShoulder: boolean
+    back: boolean
+    forward: boolean
+    leftStickButton: boolean
+    rightStickButton: boolean
+    dpadUp: boolean
+    dpadDown: boolean
+    dpadLeft: boolean
+    dpadRight: boolean
+    start: boolean
+    leftStick: Vector
+    rightStick: Vector
+    leftTrigger: number
+    rightTrigger: number
+    leftTriggerPressed: boolean
+    rightTriggerPressed: boolean
+end
+
+--- Device identifier supplied when a gamepad is disconnected.
+declare class GamepadDisconnected
+    deviceId: number
+end
+
+--- Legacy aggregate gamepad payload retained for scripts authored against the
+--- earlier LSP declaration. Prefer the event-specific payloads above.
 declare class GamepadInvocation
     deviceId: number
     buttonMask: number
@@ -1235,8 +1384,11 @@ declare class GamepadInvocation
 end
 
 --- Empty payload for listener actions that did not carry event data.
-declare class NoneInvocation
+declare class NoneEvent
 end
+
+--- Legacy name retained as an exact alias of `NoneEvent`.
+export type NoneInvocation = NoneEvent
 
 --- Context payload passed to `ListenerAction.performAction()`.
 ---
@@ -1252,37 +1404,50 @@ declare class ListenerContext
     --- True when this listener action was triggered by a keyboard event.
     function isKeyboardEvent(self): boolean
     --- Keyboard event payload, or nil when the context is not a keyboard event.
-    function asKeyboardEvent(self): KeyboardInvocation?
+    function asKeyboardEvent(self): KeyboardEvent?
 
     --- True when this listener action was triggered by text input.
     function isTextInput(self): boolean
     --- Text input payload, or nil when the context is not text input.
-    function asTextInput(self): TextInputInvocation?
+    function asTextInput(self): TextInput?
 
     --- True when this listener action was triggered by focus change.
     function isFocus(self): boolean
     --- Focus payload, or nil when the context is not a focus event.
-    function asFocus(self): FocusInvocation?
+    function asFocus(self): FocusEvent?
 
     --- True when this listener action was triggered by a reported event.
     function isReportedEvent(self): boolean
     --- Reported-event payload, or nil when the context is not a reported event.
-    function asReportedEvent(self): ReportedEventInvocation?
+    function asReportedEvent(self): ReportedEvent?
 
     --- True when this listener action was triggered by a ViewModel change.
     function isViewModelChange(self): boolean
     --- ViewModel-change payload, or nil when the context is not a ViewModel change.
-    function asViewModelChange(self): ViewModelChangeInvocation?
+    function asViewModelChange(self): ViewModelChange?
 
     --- True when this listener action was triggered by a gamepad event.
     function isGamepad(self): boolean
     --- Gamepad payload, or nil when the context is not a gamepad event.
     function asGamepad(self): GamepadInvocation?
 
+    --- True when the listener carries a gamepad-connected payload.
+    function isGamepadConnected(self): boolean
+    --- Connected-gamepad payload, or nil for another listener kind.
+    function asGamepadConnected(self): GamepadConnected?
+    --- True when the listener carries an incremental gamepad event.
+    function isGamepadEvent(self): boolean
+    --- Incremental gamepad payload, or nil for another listener kind.
+    function asGamepadEvent(self): GamepadEvent?
+    --- True when the listener carries a gamepad-disconnected payload.
+    function isGamepadDisconnected(self): boolean
+    --- Disconnected-gamepad payload, or nil for another listener kind.
+    function asGamepadDisconnected(self): GamepadDisconnected?
+
     --- True when the listener context has no event payload.
     function isNone(self): boolean
     --- Empty payload, or nil when the context has another payload kind.
-    function asNone(self): NoneInvocation?
+    function asNone(self): NoneEvent?
 end
 
 --- **A function called when a trigger fires.** Used with PropertyTrigger listeners.
@@ -1385,6 +1550,13 @@ export type PropertyColor = Property<Color>
 --- ```
 export type PropertyImage = Property<Image?>
 
+--- A font asset property. The value is an opaque `Font` asset or nil.
+export type PropertyFont = Property<Font?>
+
+--- A blob asset property. The value accepts an opaque `Blob`, a string, a
+--- Luau buffer, or nil; empty strings/buffers represent an empty Blob.
+export type PropertyBlob = Property<Blob | string | buffer | nil>
+
 --- Trigger property. Call fire() to trigger, addListener() to react.
 ---
 --- **Example:**
@@ -1481,6 +1653,10 @@ declare class ViewModel
     function getIndex(self): number
     --- Get an image property by name. Returns nil if not found.
     function getImage(self, name: string): PropertyImage?
+    --- Get a font property by name. Returns nil if not found.
+    function getFont(self, name: string): PropertyFont?
+    --- Get a blob property by name. Returns nil if not found.
+    function getBlob(self, name: string): PropertyBlob?
     --- Create an independent copy of this ViewModel. Changes to the copy
     --- won't affect the original. Useful for list items.
     function instance(self): ViewModel
@@ -1910,8 +2086,10 @@ end
 --- Create and update GPU memory for vertices, indices, or uniforms.
 declare class GPUBuffer
     size: number
-    --- Upload new bytes into a mutable buffer. Immutable buffers cannot be written after creation.
-    function write(self, data: buffer, offset: number?): ()
+    --- Upload bytes into a mutable buffer. Immutable buffers cannot be written after creation.
+    --- `destinationOffset`, `sourceOffset`, and `byteLength` are optional; both
+    --- source and destination ranges are validated by the runtime.
+    function write(self, data: buffer, destinationOffset: number?, sourceOffset: number?, byteLength: number?): ()
 end
 
 declare GPUBuffer: {
@@ -2022,6 +2200,10 @@ declare class Context
     function viewModel(self): ViewModel?
     --- Get the root ViewModel of the entire file. Useful for global settings.
     function rootViewModel(self): ViewModel?
+    --- Get a named file-global ViewModel. Returns nil for unknown or non-global names.
+    function globalViewModel(self, name: string): ViewModel?
+    --- Return the names of all file-global ViewModels as a 1-indexed array.
+    function globalViewModelNames(self): { string }
     --- Get the DataContext for hierarchy traversal.
     function dataContext(self): DataContext?
     --- Load an image asset by name. Returns nil if not found.
@@ -2030,6 +2212,8 @@ declare class Context
     --- ```
     function image(self, name: string): Image?
     --- Load a blob (binary data) asset by name. Returns nil if not found.
+    --- In an imported library, bare names resolve in library scope first;
+    --- use `lib:LibraryLabel/path` to select a labeled library asset.
     function blob(self, name: string): Blob?
     --- Load an audio asset by name. Returns nil if not found.
     --- ```lua
@@ -2046,6 +2230,8 @@ declare class Context
     --- Return GPU feature limits for the active runtime.
     function features(self): GPUFeatures
     --- Load a shader asset by name, without the `.wgsl` extension.
+    --- In an imported library, bare names resolve in library scope first;
+    --- use `lib:LibraryLabel/path` to select a labeled library asset.
     --- Returns nil if the shader is missing, not packaged, or unavailable in the current runtime channel.
     function shader(self, name: string): Shader?
     --- Asynchronously decode encoded image bytes into premultiplied RGBA pixels.
@@ -2058,6 +2244,11 @@ end
 -- =============================================================================
 -- ASSETS
 -- =============================================================================
+
+--- Opaque font asset. Font properties can be read or assigned through a
+--- `Property<Font?>`; the runtime does not expose font methods to Luau.
+declare class Font
+end
 
 --- Image asset loaded from the .riv file. Obtain via `context:image(name)`.
 ---
@@ -2136,7 +2327,7 @@ declare class Blob
     --- Size in bytes.
     size: number
     --- Raw binary data as a Luau buffer.
-    data: buffer
+    data: buffer?
 end
 
 --- **A sound file embedded in your .riv.** Load it with `context:audio("name")`,
@@ -2186,6 +2377,12 @@ declare class AudioSound
     function time(self): number
     --- Current playback position in sample frames.
     function timeFrame(self): number
+    --- Pause playback at the current position.
+    function pause(self): ()
+    --- Resume playback from the current position.
+    function resume(self): ()
+    --- Start or restart playback.
+    function play(self): ()
 end
 
 -- =============================================================================
@@ -2573,14 +2770,20 @@ export type Node<T> = T & {
     init: ((self: T, context: Context) -> boolean)?,
     update: ((self: T) -> ())?,
     advance: ((self: T, seconds: number) -> boolean)?,
-    drawCanvas: ((self: T) -> ())?,
     draw: ((self: T, renderer: Renderer) -> ())?,
     pointerDown: ((self: T, event: PointerEvent) -> ())?,
     pointerMove: ((self: T, event: PointerEvent) -> ())?,
     pointerUp: ((self: T, event: PointerEvent) -> ())?,
     pointerExit: ((self: T, event: PointerEvent) -> ())?,
-    keyboardEvent: ((self: T, event: KeyboardInvocation) -> boolean?)?,
-    textEvent: ((self: T, event: TextInputInvocation) -> boolean?)?,
+    --- Compatible legacy callbacks retained with the Editor's current event
+    --- type names. They are not listed on the current Node reference surface.
+    keyboardEvent: ((self: T, event: KeyboardEvent) -> boolean?)?,
+    textEvent: ((self: T, event: TextInput) -> boolean?)?,
+    --- Current editor gamepad callbacks. The editor reference labels these
+    --- Coming soon, so declaration coverage does not imply runtime rollout.
+    gamepadConnected: ((self: T, event: GamepadConnected) -> ())?,
+    gamepadEvent: ((self: T, event: GamepadEvent) -> ())?,
+    gamepadDisconnected: ((self: T, event: GamepadDisconnected) -> ())?,
 }
 
 --- Layout script — extends Node with size measurement and resize handling.
