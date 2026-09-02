@@ -7,18 +7,20 @@ course material or that need a fresh validation pass.
 
 ## Runtime Sources To Review
 
-- `/Users/ivg/github/rive-runtime/include/rive/lua/rive_lua_libs.hpp`
-- `/Users/ivg/github/rive-runtime/src/lua/math/lua_mat2d.cpp`
-- `/Users/ivg/github/rive-runtime/src/lua/math/lua_mat4.cpp`
-- `/Users/ivg/github/rive-runtime/src/lua/lua_listener_invocation.cpp`
-- `/Users/ivg/github/rive-runtime/src/lua/lua_properties.cpp`
-- `/Users/ivg/github/rive-runtime/src/lua/lua_scripted_context.cpp`
-- `/Users/ivg/github/rive-runtime/src/lua/lua_image_decode.cpp`
-- `/Users/ivg/github/rive-runtime/src/lua/lua_promise.cpp`
-- `/Users/ivg/github/rive-runtime/src/lua/renderer/lua_gpu.cpp`
-- `/Users/ivg/github/rive-runtime/src/scripted/scripted_drawable.cpp`
-- `/Users/ivg/github/rive-runtime/src/scripted/scripted_interpolator.cpp`
-- `/Users/ivg/github/rive-runtime/dev/defs/scripted/scripted_interpolator.json`
+Paths are relative to the `rive-runtime` repository root:
+
+- `include/rive/lua/rive_lua_libs.hpp`
+- `src/lua/math/lua_mat2d.cpp`
+- `src/lua/math/lua_mat4.cpp`
+- `src/lua/lua_listener_invocation.cpp`
+- `src/lua/lua_properties.cpp`
+- `src/lua/lua_scripted_context.cpp`
+- `src/lua/lua_image_decode.cpp`
+- `src/lua/lua_promise.cpp`
+- `src/lua/renderer/lua_gpu.cpp`
+- `src/scripted/scripted_drawable.cpp`
+- `src/scripted/scripted_interpolator.cpp`
+- `dev/defs/scripted/scripted_interpolator.json`
 
 ## Add Or Refresh In LERP
 

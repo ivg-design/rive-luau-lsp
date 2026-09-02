@@ -1,8 +1,8 @@
 {
   "name": "rive-luau",
   "displayName": "Rive Luau",
-  "description": "Language server for Rive's Luau scripting environment — rich tooltips, autocomplete, diagnostics, and IntelliSense for the Rive scripting API.",
-  "version": "1.1.8",
+  "description": "Language server for Rive Luau scripting, targeting Rive Web 2.41.1 / runtime-v0.1.344 with evidence-tiered Editor declarations.",
+  "version": "1.2.0",
   "publisher": "IVGDesign",
   "icon": "icon.png",
   "license": "MIT",
@@ -10,16 +10,29 @@
     "type": "git",
     "url": "https://github.com/ivg-design/rive-luau-lsp"
   },
+  "homepage": "https://github.com/ivg-design/rive-luau-lsp",
+  "bugs": {
+    "url": "https://github.com/ivg-design/rive-luau-lsp/issues"
+  },
   "engines": {
-    "vscode": "^1.80.0"
+    "vscode": "^1.82.0"
   },
   "categories": [
     "Programming Languages",
     "Linters"
   ],
+  "keywords": [
+    "rive",
+    "luau",
+    "scripting",
+    "language-server"
+  ],
   "activationEvents": [
     "onLanguage:luau"
   ],
+  "scripts": {
+    "vscode:prepublish": "node ./scripts/verify-package-inputs.js"
+  },
   "main": "./extension.js",
   "contributes": {
     "languages": [

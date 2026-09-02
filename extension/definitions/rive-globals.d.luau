@@ -10,6 +10,77 @@
 -- CORE TYPES
 -- =============================================================================
 
+--- Luau's standard buffer library plus the numeric conversion helpers that
+--- runtime-v0.1.344 installs on the same global table. The standard members
+--- are repeated here because a definitions-file declaration replaces the
+--- embedded table rather than merging with it.
+declare buffer: {
+    create: @checked (size: number) -> buffer,
+    fromstring: @checked (str: string) -> buffer,
+    tostring: @checked (b: buffer) -> string,
+    len: @checked (b: buffer) -> number,
+    copy: @checked (target: buffer, targetOffset: number, source: buffer, sourceOffset: number?, count: number?) -> (),
+    fill: @checked (b: buffer, offset: number, value: number, count: number?) -> (),
+    readi8: @checked (b: buffer, offset: number) -> number,
+    readu8: @checked (b: buffer, offset: number) -> number,
+    readi16: @checked (b: buffer, offset: number) -> number,
+    readu16: @checked (b: buffer, offset: number) -> number,
+    readi32: @checked (b: buffer, offset: number) -> number,
+    readu32: @checked (b: buffer, offset: number) -> number,
+    readf32: @checked (b: buffer, offset: number) -> number,
+    readf64: @checked (b: buffer, offset: number) -> number,
+    writei8: @checked (b: buffer, offset: number, value: number) -> (),
+    writeu8: @checked (b: buffer, offset: number, value: number) -> (),
+    writei16: @checked (b: buffer, offset: number, value: number) -> (),
+    writeu16: @checked (b: buffer, offset: number, value: number) -> (),
+    writei32: @checked (b: buffer, offset: number, value: number) -> (),
+    writeu32: @checked (b: buffer, offset: number, value: number) -> (),
+    writef32: @checked (b: buffer, offset: number, value: number) -> (),
+    writef64: @checked (b: buffer, offset: number, value: number) -> (),
+    readstring: @checked (b: buffer, offset: number, count: number) -> string,
+    writestring: @checked (b: buffer, offset: number, value: string, count: number?) -> (),
+    readbits: @checked (b: buffer, bitOffset: number, bitCount: number) -> number,
+    writebits: @checked (b: buffer, bitOffset: number, bitCount: number, value: number) -> (),
+    --- Read a signed 64-bit integer at `offset`. This Luau 0.736 value remains
+    --- represented as a number in definition consumers without integer types.
+    readinteger: @checked (b: buffer, offset: number) -> number,
+    --- Write a signed 64-bit integer at `offset`. This Luau 0.736 value remains
+    --- represented as a number in definition consumers without integer types.
+    writeinteger: @checked (b: buffer, offset: number, value: number) -> (),
+
+    --- Read a 16-bit IEEE 754 half-precision float at `offset`.
+    readf16: @checked (b: buffer, offset: number) -> number,
+    --- Write a 16-bit IEEE 754 half-precision float at `offset`.
+    writef16: @checked (b: buffer, offset: number, value: number) -> (),
+    --- Copy `count` fixed-size elements using independent source and
+    --- destination strides.
+    stridedcopy: @checked (
+        dst: buffer,
+        dstOffset: number,
+        dstStride: number,
+        src: buffer,
+        srcOffset: number,
+        srcStride: number,
+        elementSize: number,
+        count: number
+    ) -> (),
+    --- Convert numeric elements between `f16`, `f32`, `u8`, `u8norm`,
+    --- `i8norm`, `u16`, `u16norm`, `i16norm`, and `u32`. Components default
+    --- to one; omitted strides use packed element sizes.
+    convert: @checked (
+        dst: buffer,
+        dstOffset: number,
+        dstFormat: string,
+        src: buffer,
+        srcOffset: number,
+        srcFormat: string,
+        count: number,
+        components: number?,
+        dstStride: number?,
+        srcStride: number?
+    ) -> (),
+}
+
 --- **A 2D point or direction** — the most common type in Rive scripting.
 ---
 --- A Vector holds an `x` and `y` value. Use it for positions, sizes, directions, and offsets.
@@ -28,7 +99,7 @@
 --- local scaled = pos * 2             -- double both x and y
 --- local flipped = -pos               -- negate both components
 --- ```
-declare class Vector
+declare extern type Vector with
     --- **The horizontal value.** Positive = right, negative = left.
     --- Read-only — use `Vector.xy()` to create a new vector with different values.
     x: number
@@ -273,7 +344,7 @@ declare Color: {
 --- local combined = move * spin -- first rotate, then translate
 --- local worldPos = combined * localPoint
 --- ```
-declare class Mat2D
+declare extern type Mat2D with
     --- X-axis scale component. Default: 1.
     xx: number
     --- X-axis shear component. Default: 0.
@@ -357,7 +428,7 @@ declare Mat2D: {
 --- through `m11` ... `m44` plus numeric indexes `mat[1]` ... `mat[16]`.
 --- Use it for perspective projection, 3D transforms, and passing matrices to
 --- GPU buffers.
-declare class Mat4
+declare extern type Mat4 with
     m11: number
     m12: number
     m13: number
@@ -401,22 +472,22 @@ end
 declare Mat4: {
     identity: () -> Mat4,
     values: (
-        m11: number,
-        m12: number,
-        m13: number,
-        m14: number,
-        m21: number,
-        m22: number,
-        m23: number,
-        m24: number,
-        m31: number,
-        m32: number,
-        m33: number,
-        m34: number,
-        m41: number,
-        m42: number,
-        m43: number,
-        m44: number
+        c0x: number,
+        c0y: number,
+        c0z: number,
+        c0w: number,
+        c1x: number,
+        c1y: number,
+        c1z: number,
+        c1w: number,
+        c2x: number,
+        c2y: number,
+        c2z: number,
+        c2w: number,
+        c3x: number,
+        c3y: number,
+        c3z: number,
+        c3w: number
     ) -> Mat4,
     fromTranslation: (x: number, y: number, z: number) -> Mat4,
     fromScale: (sx: number, sy: number?, sz: number?) -> Mat4,
@@ -540,7 +611,7 @@ export type GradientStop = {
 ---       { position = 1, color = Color.rgb(0, 0, 255) } }
 --- )
 --- ```
-declare class Gradient
+declare extern type Gradient with
 end
 
 --- Static constructors for Gradient.
@@ -625,7 +696,7 @@ export type PaintDefinition = {
 --- p.style = "stroke"
 --- p.thickness = 2
 --- ```
-declare class Paint
+declare extern type Paint with
     --- `"fill"` (solid shape) or `"stroke"` (outline only). Default: `"fill"`.
     style: PaintStyle
     --- The color of this paint. Default: black. Change with `paint.color = Color.rgb(...)`.
@@ -696,7 +767,7 @@ declare Paint: {
 --- local m = path:measure()
 --- local pos, tangent = m:positionAndTangent(m.length / 2)  -- midpoint
 --- ```
-declare class PathMeasure
+declare extern type PathMeasure with
     --- Total length of the path in pixels.
     length: number
     --- True if the path is a single closed contour.
@@ -719,7 +790,13 @@ declare class PathMeasure
     --- local segment = Path.new()
     --- measure:extract(0, measure.length * 0.5, segment, true)
     --- ```
-    function extract(self, startDist: number, endDist: number, dest: Path, startWithMove: boolean?): ()
+    function extract(
+        self,
+        startDistance: number,
+        endDistance: number,
+        destination: Path,
+        startWithMove: boolean?
+    ): ()
 end
 
 --- Measures individual contours (subpaths) within a path.
@@ -733,7 +810,7 @@ end
 ---     c = c.next
 --- end
 --- ```
-declare class ContourMeasure
+declare extern type ContourMeasure with
     --- Length of this individual contour in pixels.
     length: number
     --- True if this contour is closed.
@@ -748,7 +825,13 @@ declare class ContourMeasure
     --- `point.x` = distance along contour, `point.y` = perpendicular offset.
     function warp(self, point: Vector): Vector
     --- Extract a segment of this contour and append to `dest`.
-    function extract(self, startDist: number, endDist: number, dest: Path, startWithMove: boolean?): ()
+    function extract(
+        self,
+        startDistance: number,
+        endDistance: number,
+        destination: Path,
+        startWithMove: boolean?
+    ): ()
 end
 
 --- **The kind of drawing instruction** in a path command.
@@ -792,13 +875,16 @@ export type CommandType = "none" | "moveTo" | "lineTo" | "quadTo" | "cubicTo" | 
 ---     end
 --- end
 --- ```
-export type PathCommand = {
+export type PathCommand = setmetatable<{
     --- **What kind of command** this is (moveTo, lineTo, quadTo, cubicTo, close).
     type: CommandType,
     --- **Control points.** Index with `cmd[1]`, `cmd[2]`, `cmd[3]`.
     --- Each is a Vector. Count depends on command type (use `#cmd`).
     [number]: Vector,
-}
+}, {
+    --- **Number of control points** carried by this command.
+    __len: (self: PathCommand) -> number,
+}>
 
 --- Indexed collection of PathCommand objects. Used as input in PathEffect scripts.
 --- Supports `#pathData` for count and `ipairs(pathData)` for iteration.
@@ -814,11 +900,12 @@ export type PathCommand = {
 ---     end
 --- end
 --- ```
-export type PathData = {
-    contours: (self: PathData) -> ContourMeasure?,
-    measure: (self: PathData) -> PathMeasure,
-    [number]: PathCommand,
-}
+declare extern type PathData with
+    [index]: PathCommand
+    function __len(self): number
+    function contours(self): ContourMeasure?
+    function measure(self): PathMeasure
+end
 
 --- **A shape you can draw on screen.** Paths are the building blocks of all
 --- custom drawing in Rive scripting.
@@ -845,7 +932,7 @@ export type PathData = {
 ---
 --- renderer:drawPath(path, myPaint)
 --- ```
-declare class Path
+declare extern type Path with
     --- **Read commands by index.** Each entry is a `PathCommand` — editor-validated:
     --- `path[2].type` returns the command type, `#path[2]` its point count.
     --- ```lua
@@ -958,7 +1045,7 @@ declare Path: {
 --- renderer:drawPath(content, paint) -- only visible inside mask
 --- renderer:restore()               -- remove clip
 --- ```
-declare class Renderer
+declare extern type Renderer with
     --- **Render a shape on screen.** This is the core drawing call in Rive scripting.
     ---
     --- You give it two things:
@@ -1046,13 +1133,21 @@ end
 --- **Vertex position data for mesh rendering.** Used with `renderer:drawImageMesh()`.
 --- Created internally by the Rive runtime — you don't create these yourself.
 --- Contains (x, y) positions for each vertex of the mesh.
-declare class VertexBuffer
+declare extern type VertexBuffer with
+    --- Append one or more vertex positions.
+    function add(self, ...: Vector): ()
+    --- Remove every vertex so the buffer can be rebuilt.
+    function reset(self): ()
 end
 
 --- **Triangle indices for mesh rendering.** Used with `renderer:drawImageMesh()`.
 --- Created internally by the Rive runtime — you don't create these yourself.
 --- Defines which vertices connect to form triangles.
-declare class TriangleBuffer
+declare extern type TriangleBuffer with
+    --- Append one triangle from three 1-based vertex indices.
+    function add(self, v1: number, v2: number, v3: number): ()
+    --- Remove every triangle so the buffer can be rebuilt.
+    function reset(self): ()
 end
 
 -- =============================================================================
@@ -1079,7 +1174,7 @@ end
 ---     print("Node at", pos.x, pos.y, "rotated", math.deg(angle), "degrees")
 --- end
 --- ```
-declare class NodeReadData
+declare extern type NodeReadData with
     --- **Where the node is** relative to its parent. A Vector with x and y.
     position: Vector
     --- **Rotation angle in radians.** Use `math.deg(node.rotation)` for degrees.
@@ -1131,7 +1226,7 @@ end
 ---     print(child.x, child.y)
 --- end
 --- ```
-declare class NodeData
+declare extern type NodeData with
     --- **Where the node is** relative to its parent (read/write).
     position: Vector
     --- **Rotation angle in radians** (read/write).
@@ -1201,9 +1296,13 @@ export type PointerType =
 ---     end
 --- end
 --- ```
-declare class PointerEvent
+declare extern type PointerEvent with
     --- Pointer position in local coordinates of the node.
     position: Vector
+    --- Position reported for the previous pointer sample.
+    previousPosition: Vector
+    --- Event timestamp supplied by the runtime host.
+    timeStamp: number
     --- Pointer identifier (0 for mouse, unique per finger for multitouch).
     id: number
     --- Current Editor event kind. This is distinct from the callback name so
@@ -1233,7 +1332,7 @@ declare PointerEvent: {
 export type KeyPhase = "down" | "repeat" | "up"
 
 --- Keyboard payload exposed by the current Editor reference.
-declare class KeyboardEvent
+declare extern type KeyboardEvent with
     --- Numeric Rive key code for the key that changed.
     key: number
     --- True when Shift was held.
@@ -1252,37 +1351,41 @@ end
 export type KeyboardInvocation = KeyboardEvent
 
 --- Text input payload. This is text after keyboard layout/input-method handling.
-declare class TextInput
+--- The current Editor reference labels this event type Coming soon; the
+--- released runtime wrapper is present, so this declaration records both facts.
+declare extern type TextInput with
     text: string
 end
 
 --- Legacy name retained as an exact alias of `TextInput`.
 export type TextInputInvocation = TextInput
 
---- Focus-change payload for listener actions.
-declare class FocusEvent
+--- Focus-change payload for listener actions. The current Editor reference
+--- labels this event type Coming soon; runtime-v0.1.344 has the wrapper.
+declare extern type FocusEvent with
     isFocus: boolean
 end
 
 --- Legacy name retained as an exact alias of `FocusEvent`.
 export type FocusInvocation = FocusEvent
 
---- Reported-event payload in the current Editor reference. The current
---- reference intentionally exposes no members.
-declare class ReportedEvent
+--- Reported-event payload in the current Editor reference. It is marked Coming
+--- soon there and intentionally exposes no members.
+declare extern type ReportedEvent with
 end
 
---- Legacy reported-event payload retained for scripts that referenced the
---- earlier LSP-only `delaySeconds` field. ListenerContext returns the exact
---- current `ReportedEvent` type; no runtime support for this legacy field is
---- implied.
-declare class ReportedEventInvocation
+--- Runtime payload exposed by the exact runtime-v0.1.344 reported-event
+--- dispatch wrapper. The current Editor reference still declares
+--- `ReportedEvent` as an empty Coming soon type, so `ListenerContext` returns
+--- that editor-facing type instead.
+declare extern type ReportedEventInvocation with
     --- Delay reported by the source event, in seconds.
     delaySeconds: number
 end
 
---- ViewModel-change payload for listener actions.
-declare class ViewModelChange
+--- ViewModel-change payload for listener actions. The current Editor reference
+--- marks this opaque event type Coming soon.
+declare extern type ViewModelChange with
 end
 
 --- Legacy name retained as an exact alias of `ViewModelChange`.
@@ -1294,7 +1397,7 @@ export type GamepadMappingKind = "standard" | "unknown"
 --- Full gamepad state supplied when a device is connected.
 --- The live editor reference currently labels this callback surface Coming soon;
 --- declarations provide analyzer parity without asserting runtime rollout.
-declare class GamepadConnected
+declare extern type GamepadConnected with
     deviceId: number
     buttonMask: number
     buttons: { number }
@@ -1329,7 +1432,7 @@ declare class GamepadConnected
 end
 
 --- Full post-update gamepad state plus the field changed by this event.
-declare class GamepadEvent
+declare extern type GamepadEvent with
     changeKind: string
     changeIndex: number
     changeValue: number
@@ -1371,20 +1474,13 @@ declare class GamepadEvent
 end
 
 --- Device identifier supplied when a gamepad is disconnected.
-declare class GamepadDisconnected
+declare extern type GamepadDisconnected with
     deviceId: number
 end
 
---- Legacy aggregate gamepad payload retained for scripts authored against the
---- earlier LSP declaration. Prefer the event-specific payloads above.
-declare class GamepadInvocation
-    deviceId: number
-    buttonMask: number
-    axis0: number
-end
-
---- Empty payload for listener actions that did not carry event data.
-declare class NoneEvent
+--- Empty payload for listener actions that did not carry event data. The
+--- current Editor reference marks this opaque event type Coming soon.
+declare extern type NoneEvent with
 end
 
 --- Legacy name retained as an exact alias of `NoneEvent`.
@@ -1395,7 +1491,9 @@ export type NoneInvocation = NoneEvent
 --- Listener actions can be triggered by different event kinds. Use the
 --- `is...()` guard before reading a payload through the matching `as...()`
 --- accessor.
-declare class ListenerContext
+--- The current Editor reference labels ListenerContext Coming soon, while
+--- runtime-v0.1.344 supplies the event-specific dispatch wrappers below.
+declare extern type ListenerContext with
     --- True when this listener action was triggered by a pointer event.
     function isPointerEvent(self): boolean
     --- Pointer event payload, or nil when the context is not a pointer event.
@@ -1425,11 +1523,6 @@ declare class ListenerContext
     function isViewModelChange(self): boolean
     --- ViewModel-change payload, or nil when the context is not a ViewModel change.
     function asViewModelChange(self): ViewModelChange?
-
-    --- True when this listener action was triggered by a gamepad event.
-    function isGamepad(self): boolean
-    --- Gamepad payload, or nil when the context is not a gamepad event.
-    function asGamepad(self): GamepadInvocation?
 
     --- True when the listener carries a gamepad-connected payload.
     function isGamepadConnected(self): boolean
@@ -1478,8 +1571,8 @@ export type Trigger = (any) -> ()
 --- score:removeListener(myCallback)
 --- ```
 export type Listener<T> =
-    (<K>(self: any, obj: K, callback: (K) -> ()) -> ())
-    & ((self: any, callback: () -> ()) -> ())
+    (<K>(self: T, obj: K, callback: (K) -> ()) -> ())
+    & ((self: T, callback: () -> ()) -> ())
 
 --- **A live value connected to the Rive editor.** Read it, write it, listen for changes.
 ---
@@ -1582,6 +1675,7 @@ export type PropertyTrigger = {
 --- ```
 export type EnumValues = {
     [number]: string,
+    __len: (self: EnumValues) -> number,
 }
 
 --- Property holding an enum string value. Call values() to get all valid options.
@@ -1616,8 +1710,10 @@ export type PropertyEnum = Property<string> & {
 ---     return true
 --- end
 --- ```
-declare class ViewModel
-    --- Name of this ViewModel definition (read-only).
+declare extern type ViewModel with
+    --- Name of this ViewModel definition. The current Editor reference marks
+    --- this field Coming soon; runtime-v0.1.344 does not expose it as a
+    --- dedicated property, so analyzer acceptance is not runtime proof.
     name: string
     --- Get a number property by name. Returns nil if not found.
     --- ```lua
@@ -1657,9 +1753,10 @@ declare class ViewModel
     function getFont(self, name: string): PropertyFont?
     --- Get a blob property by name. Returns nil if not found.
     function getBlob(self, name: string): PropertyBlob?
-    --- Create an independent copy of this ViewModel. Changes to the copy
-    --- won't affect the original. Useful for list items.
-    function instance(self): ViewModel
+    --- Create an independent copy of this ViewModel. Pass an optional named
+    --- template instance; an unknown name falls back to the default instance.
+    --- Changes to the copy won't affect the original.
+    function instance(self, instanceName: string?): ViewModel
 end
 
 --- **A dynamic list of ViewModel items** — like an array you can add to, remove from, and reorder.
@@ -1692,15 +1789,10 @@ end
 --- list:clear()
 --- ```
 export type PropertyList = {
-    --- **How many items** are in the list. Same as `count`.
+    --- **How many items** are in the list.
     length: number,
-    --- **How many items** are in the list. Same as `length`.
-    count: number,
     --- **Access items by index.** `list[1]` is the first item. Index starts at 1 (Luau style).
     [number]: ViewModel,
-    --- **Get an item by index.** Returns nil if index is out of range.
-    --- Same as `list[index]` but returns nil instead of erroring on bad index.
-    item: (self: PropertyList, index: number) -> ViewModel?,
     --- **Add an item to the end** of the list.
     push: (self: PropertyList, vm: ViewModel) -> (),
     --- **Insert an item at a specific position.** Existing items shift forward.
@@ -1748,7 +1840,7 @@ export type PropertyViewModel = {
 ---     local parentVM = parentDC:viewModel()
 --- end
 --- ```
-declare class DataContext
+declare extern type DataContext with
     --- **Go up one level** in the ViewModel hierarchy.
     --- Returns nil if you're already at the root (top level).
     function parent(self): DataContext?
@@ -1986,6 +2078,9 @@ export type GPUPipelineDesc = {
 
 export type GPUBindGroupLayoutDesc = {
     shader: Shader,
+    --- Optional separate shader carrying the fragment stage. Accepted
+    --- runtime-v0.1.344 merges its binding map with `shader`.
+    fragment: Shader?,
     groupIndex: number,
     dynamicUBOs: { number }?,
     label: string?,
@@ -2066,8 +2161,9 @@ declare function async<T>(callback: () -> (T | Promise<T>)): Promise<T>
 
 --- Offscreen Rive canvas. Draw normal Rive vector content into it with
 --- `beginFrame()` / `endFrame()`, then composite `canvas.image`.
-declare class Canvas
-    image: Image
+declare extern type Canvas with
+    --- Nil while a deferred canvas has not been sized.
+    image: Image?
     width: number
     height: number
     function beginFrame(self, options: CanvasFrameOptions?): Renderer
@@ -2080,11 +2176,11 @@ end
 --- Get one with `context:shader("asset_name")` using the shader asset name
 --- without the `.wgsl` extension. A `Shader` is an opaque GPU module; use it in
 --- `GPUPipeline.new()` as a bare stage or `{ module = shader, entryPoint = "vsMain" }`.
-declare class Shader
+declare extern type Shader with
 end
 
 --- Create and update GPU memory for vertices, indices, or uniforms.
-declare class GPUBuffer
+declare extern type GPUBuffer with
     size: number
     --- Upload bytes into a mutable buffer. Immutable buffers cannot be written after creation.
     --- `destinationOffset`, `sourceOffset`, and `byteLength` are optional; both
@@ -2098,12 +2194,12 @@ declare GPUBuffer: {
 }
 
 --- View into a GPU texture or canvas backing store.
-declare class GPUTextureView
+declare extern type GPUTextureView with
     format: TextureFormat
 end
 
 --- GPU texture for sampling, render targets, depth buffers, arrays, cubes, or 3D textures.
-declare class GPUTexture
+declare extern type GPUTexture with
     width: number
     height: number
     format: TextureFormat
@@ -2117,7 +2213,7 @@ declare GPUTexture: {
 }
 
 --- GPU sampler describing filtering and wrapping for shader texture reads.
-declare class GPUSampler
+declare extern type GPUSampler with
 end
 
 declare GPUSampler: {
@@ -2125,7 +2221,7 @@ declare GPUSampler: {
 }
 
 --- Bind group layout reflected from a shader's WGSL `@group(index)` bindings.
-declare class GPUBindGroupLayout
+declare extern type GPUBindGroupLayout with
 end
 
 declare GPUBindGroupLayout: {
@@ -2133,7 +2229,7 @@ declare GPUBindGroupLayout: {
 }
 
 --- Runtime bundle of buffers, textures, and samplers bound to shader slots.
-declare class GPUBindGroup
+declare extern type GPUBindGroup with
 end
 
 declare GPUBindGroup: {
@@ -2141,7 +2237,7 @@ declare GPUBindGroup: {
 }
 
 --- Compiled GPU pipeline: shader stages plus vertex layout, color/depth state, and topology.
-declare class GPUPipeline
+declare extern type GPUPipeline with
     function getBindGroupLayout(self, index: number): GPUBindGroupLayout
 end
 
@@ -2150,7 +2246,7 @@ declare GPUPipeline: {
 }
 
 --- Active GPU render pass. Set a pipeline, bind buffers/resources, draw, then finish.
-declare class GPURenderPass
+declare extern type GPURenderPass with
     function setPipeline(self, pipeline: GPUPipeline): ()
     function setVertexBuffer(self, slot: number, buffer: GPUBuffer): ()
     function setIndexBuffer(self, buffer: GPUBuffer, indexFormat: ("uint16" | "uint32")?): ()
@@ -2165,10 +2261,11 @@ declare class GPURenderPass
 end
 
 --- GPU-backed offscreen canvas for custom render passes.
-declare class GPUCanvas
+declare extern type GPUCanvas with
     --- The rendered GPU canvas output as a normal Rive image.
     --- Composite this in `draw()` with `renderer:drawImage(gpuCanvas.image, sampler, "srcOver", opacity)`.
-    image: Image
+    --- Nil while a deferred canvas has not been sized.
+    image: Image?
     width: number
     height: number
     format: ColorFormat
@@ -2194,7 +2291,12 @@ end
 ---     return true  -- return false to disable this script
 --- end
 --- ```
-declare class Context
+declare extern type Context with
+    --- Log through the current Editor host. Use dot-call syntax:
+    --- `context.log("message")`. The installed Editor reference exposes this
+    --- on both script backends; released runtime-v0.1.344 source does not make
+    --- a standalone Luau runtime claim for it.
+    log: (message: string) -> ()
     --- Get the ViewModel bound to the artboard this script is on.
     --- Returns nil if no ViewModel is bound.
     function viewModel(self): ViewModel?
@@ -2247,7 +2349,7 @@ end
 
 --- Opaque font asset. Font properties can be read or assigned through a
 --- `Property<Font?>`; the runtime does not expose font methods to Luau.
-declare class Font
+declare extern type Font with
 end
 
 --- Image asset loaded from the .riv file. Obtain via `context:image(name)`.
@@ -2260,7 +2362,7 @@ end
 --- local sampler = ImageSampler("clamp", "clamp", "bilinear")
 --- renderer:drawImage(img, sampler, "srcOver", 1.0)
 --- ```
-declare class Image
+declare extern type Image with
     --- Width of the image in pixels.
     width: number
     --- Height of the image in pixels.
@@ -2292,7 +2394,7 @@ export type ImageFilter = "bilinear" | "nearest"
 --- -- Pixel-art tiling:
 --- local tiled = ImageSampler("repeat", "repeat", "nearest")
 --- ```
-declare class ImageSampler
+declare extern type ImageSampler with
 end
 
 --- **Create an ImageSampler** — controls image quality and tiling behavior.
@@ -2318,15 +2420,19 @@ declare ImageSampler: ((wrapX: ImageWrap, wrapY: ImageWrap, filter: ImageFilter)
 --- local b = context:blob("config")
 --- if b then
 ---     print(b.name, b.size, "bytes")
----     -- b.data is a Luau buffer
+---     -- Empty blobs have nil data in runtime-v0.1.344.
+---     if b.data then
+---         print(buffer.len(b.data))
+---     end
 --- end
 --- ```
-declare class Blob
+declare extern type Blob with
     --- Asset name.
     name: string
     --- Size in bytes.
     size: number
-    --- Raw binary data as a Luau buffer.
+    --- Raw binary data as a Luau buffer. The accepted runtime returns nil for
+    --- an empty payload; there is no `Blob:asString()` conversion helper.
     data: buffer?
 end
 
@@ -2347,7 +2453,10 @@ end
 ---     Audio.play(self.clickSound)  -- play the sound!
 --- end
 --- ```
-declare class AudioSource
+declare extern type AudioSource with
+    --- Duration of the source in seconds. Confirmed by the released
+    --- runtime-v0.1.344 Lua wrapper despite stale docs marking it Coming soon.
+    duration: number
 end
 
 --- Playing audio instance. Control playback with stop(), seek(), volume.
@@ -2359,7 +2468,7 @@ end
 --- -- Later:
 --- if sound:completed() then print("Done!") end
 --- ```
-declare class AudioSound
+declare extern type AudioSound with
     --- Playback volume (0.0 = silent, 1.0 = full volume). Read/write.
     volume: number
     --- Stop playback. Optional fade-out time in seconds.
@@ -2399,7 +2508,7 @@ end
 ---     return true
 --- end
 --- ```
-declare class Animation
+declare extern type Animation with
     --- Total duration of the animation in seconds.
     duration: number
     --- Advance the animation by `deltaTime` seconds.
@@ -2411,8 +2520,6 @@ declare class Animation
     function setTimeFrames(self, frames: number): ()
     --- Jump to a percentage of the animation (0.0 = start, 1.0 = end).
     function setTimePercentage(self, percent: number): ()
-    --- Start playing the animation.
-    function play(self): ()
 end
 
 --- Rive artboard instance. The root container for all Rive content.
@@ -2440,7 +2547,7 @@ end
 ---     self.child:draw(renderer)
 --- end
 --- ```
-export type Artboard<T = any> = {
+export type Artboard<T = nil> = {
     --- Artboard width in pixels (read/write).
     width: number,
     --- Artboard height in pixels (read/write).
@@ -2486,6 +2593,12 @@ export type Artboard<T = any> = {
     pointerMove: (self: Artboard<T>, event: PointerEvent) -> number,
     --- Handle a pointer-exit event. Returns hit count (0 = no hit).
     pointerExit: (self: Artboard<T>, event: PointerEvent) -> number,
+    --- Forward a gamepad-connected event into this artboard's state machine.
+    gamepadConnected: (self: Artboard<T>, event: GamepadConnected) -> number,
+    --- Forward a gamepad state-change event into this artboard's state machine.
+    gamepadEvent: (self: Artboard<T>, event: GamepadEvent) -> number,
+    --- Forward a gamepad-disconnected event into this artboard's state machine.
+    gamepadDisconnected: (self: Artboard<T>, event: GamepadDisconnected) -> number,
 }
 
 -- =============================================================================
@@ -2547,7 +2660,7 @@ declare Audio: {
 ---     end
 --- end
 --- ```
-declare class DataValue
+declare extern type DataValue with
     --- **Is this a number?** Returns true if `.value` is a number type.
     function isNumber(self): boolean
     --- **Is this a string?** Returns true if `.value` is a text type.
@@ -2565,7 +2678,7 @@ end
 --- dv.value = 42
 --- print(dv.value)  -- 42
 --- ```
-declare class DataValueNumber
+declare extern type DataValueNumber with
     --- **The number** stored in this DataValue (read/write).
     value: number
     --- Returns true (this IS a number DataValue).
@@ -2584,7 +2697,7 @@ end
 --- local dv = DataValue.string()
 --- dv.value = "Hello"
 --- ```
-declare class DataValueString
+declare extern type DataValueString with
     --- **The text** stored in this DataValue (read/write).
     value: string
     --- Returns false (this is not a number).
@@ -2603,7 +2716,7 @@ end
 --- local dv = DataValue.boolean()
 --- dv.value = true
 --- ```
-declare class DataValueBoolean
+declare extern type DataValueBoolean with
     --- **The true/false value** stored in this DataValue (read/write).
     value: boolean
     --- Returns false (this is not a number).
@@ -2624,7 +2737,7 @@ end
 --- dv.red = 128                      -- change just the red channel
 --- print(dv.alpha)                   -- read the alpha channel
 --- ```
-declare class DataValueColor
+declare extern type DataValueColor with
     --- **The full Color** stored in this DataValue (read/write).
     value: Color
     --- **Red channel** (0-255, read/write). 0 = no red, 255 = full red.
@@ -2694,22 +2807,18 @@ declare DataValue: {
 --- ```
 export type Input<T> = T
 
---- **A value your script provides** that the Rive runtime reads each frame.
+--- **A value your script provides** that the Editor can type-check.
 ---
---- Outputs are the opposite of Inputs: your script WRITES them, and the editor/runtime
---- reads them. Use outputs to send computed results back to the editor (e.g., for
---- data binding to other nodes).
+--- The current Editor reference marks Output Coming soon, and
+--- runtime-v0.1.344 has no distinct Output binding. Keep it as an annotation
+--- surface without treating analyzer-clean output as execution evidence.
 ---
 --- **Example:**
 --- ```lua
---- type MyNode = {
----     result: Output<number>,  -- the runtime reads this each frame
+--- type PlannedBindings = {
+---     -- Type-only placeholder; runtime-v0.1.344 does not bind this field.
+---     result: Output<number>,
 --- }
----
---- function advance(self: MyNode, seconds: number): boolean
----     self.result = math.sin(seconds) * 100  -- write directly (NOT .value)
----     return true
---- end
 --- ```
 export type Output<T> = T
 
@@ -2732,7 +2841,9 @@ export type Output<T> = T
 ---   with `seconds = 0`, and the return value is ignored. Never divide by
 ---   `seconds` or assume it is non-zero.
 --- - `draw(self, renderer)` — called on every repaint to render, independent
----   of advance (can fire before the first advance). Keep pure (no state changes)!
+---   of advance (can fire before the first advance). It may record Canvas or
+---   GPUCanvas work and rebuild transient geometry before that geometry's
+---   first draw; never mutate and redraw the same path in one frame.
 ---
 --- **Pointer methods (optional):**
 --- - `pointerDown(self, event)`, `pointerMove(self, event)`
@@ -2792,7 +2903,12 @@ export type Node<T> = T & {
 ---
 --- **Additional methods:**
 --- - `measure(self)` — return ideal size (Vector) for "Hug" fit type
---- - `resize(self, size)` — called when the layout size changes
+--- - `resize(self, size, displayScale)` — optional; called when the layout
+---   size or presenting-surface scale changes
+---
+--- Released runtime-v0.1.344 passes device pixels per layout point as
+--- `displayScale`. Existing two-parameter Luau callbacks remain compatible:
+--- Luau ignores the additional argument when the function does not declare it.
 ---
 --- **Example:**
 --- ```lua
@@ -2802,7 +2918,7 @@ export type Node<T> = T & {
 --- ```
 export type Layout<T> = Node<T> & {
     measure: ((self: T) -> Vector)?,
-    resize: (self: T, size: Vector) -> (),
+    resize: ((self: T, size: Vector, displayScale: number) -> ())?,
 }
 
 --- Converter script — transforms data between ViewModel bindings.
@@ -2928,11 +3044,380 @@ export type TransitionCondition<T> = T & {
 ---
 --- `transform()` remaps the normalized factor before interpolation. Use
 --- `transformValue()` when the interpolation itself needs custom behavior.
---- If either method is omitted, the runtime falls back to linear interpolation.
+--- If either method is omitted, runtime-v0.1.344 falls back to linear
+--- interpolation. The current Editor reference lists both methods as required;
+--- this declaration follows the released runtime's callable fallback behavior.
 export type Interpolator<T> = T & {
     init: ((self: T, context: Context) -> boolean)?,
     transform: ((self: T, factor: number) -> number)?,
     transformValue: ((self: T, valueFrom: number, valueTo: number, factor: number) -> number)?,
+}
+
+-- =============================================================================
+-- EDITOR FILE FORMATS
+-- =============================================================================
+
+--- Current stable Editor-only file-format protocols. These callbacks analyze
+--- or preview imported documents; they do not imply runtime playback support.
+--- A document being edited, handed to every FileFormat callback. Exactly one
+--- of `text` (text documents) or `bytes` (binary documents) is set. Positions
+--- reported back to Rive are 0-based byte offsets into `text`.
+export type FormatDocument = {
+
+    --- Display name of the document, e.g. "readme".
+    read name: string,
+
+    --- File extension of the document without the dot, e.g. "md".
+    read extension: string,
+
+    --- Full document text, nil for binary documents.
+    read text: string?,
+
+    --- Document bytes, nil for text documents.
+    read bytes: buffer?,
+}
+
+--- Highlight scope for a token. Scopes map onto the same theme colors used by
+--- the Luau and WGSL editors.
+---
+--- * `none`
+--- * `keyword`
+--- * `type`
+--- * `literal`
+--- * `number`
+--- * `operator`
+--- * `punctuation`
+--- * `property`
+--- * `string`
+--- * `comment`
+--- * `boolean`
+--- * `nil`
+--- * `interp`
+--- * `function`
+export type FormatScope = 'none' | 'keyword' | 'type' | 'literal' | 'number'
+    | 'operator' | 'punctuation' | 'property' | 'string' | 'comment'
+    | 'boolean' | 'nil' | 'interp' | 'function'
+
+--- One highlight run. When `length` is omitted the run extends to the next
+--- token on the same line, or the end of the line.
+export type FormatToken = {
+    line: number,
+    column: number,
+    scope: FormatScope,
+    length: number?,
+}
+
+--- A problem to show in the document's gutter and problems panel.
+export type FormatDiagnostic = {
+    startLine: number,
+    startColumn: number,
+    endLine: number,
+    endColumn: number,
+    message: string,
+
+    --- Defaults to 'error' when omitted.
+    severity: ('error' | 'warning')?,
+}
+
+--- An autocomplete entry. When the range is omitted the completion inserts at
+--- the cursor position.
+export type FormatCompletion = {
+    text: string,
+    startLine: number?,
+    startColumn: number?,
+    endLine: number?,
+    endColumn: number?,
+}
+
+--- Documentation shown when hovering the given range.
+export type FormatHover = {
+    startLine: number,
+    startColumn: number,
+    endLine: number,
+    endColumn: number,
+
+    --- Short single line preview, e.g. a signature.
+    preview: string?,
+
+    --- Markdown body.
+    documentation: string?,
+}
+
+--- Style for one highlight scope, plain values so they can feed paints,
+--- view models, or anything else.
+export type EditorThemeStyle = {
+    read color: Color,
+    read weight: number?,
+}
+
+--- The editor's resolved code theme (defaults, the user's Luau config, and
+--- overrides already merged). Values refresh live when the user's config
+--- changes; read inside draw/measure rather than caching across frames.
+export type EditorTheme = {
+
+    --- Per-scope styles, the same palette the editor uses for this
+    --- document's highlight tokens.
+    read scopes: { [FormatScope]: EditorThemeStyle },
+    read background: Color,
+    read divider: Color,
+    read dividerHighlight: Color,
+    read error: Color,
+    read warning: Color,
+    read lineNumber: Color,
+    read fontSize: number,
+    read lineHeight: number,
+}
+
+--- Scroll position of the text editor pane showing this document. `line` is
+--- the fractional 0-based line at the top of the viewport: 10.5 means the
+--- viewport top sits halfway through line 10. `percent` runs 0 to 1 across
+--- the editor's scrollable range.
+export type EditorScroll = {
+    read percent: number,
+    read line: number,
+    --- Scrollable range in line units (the top line when fully scrolled).
+    read maxLine: number,
+    --- The primary cursor's line, and where it sits in the viewport
+    --- (0 top to 1 bottom, outside that range when off screen). Nil when
+    --- the editor has no cursor.
+    read cursorLine: number?,
+    read cursorFraction: number?,
+}
+
+--- Edit time context handed to FileFormat views. Everything it returns is
+--- either immutable or a private instance; nothing reaches back into the
+--- open file's live state.
+declare extern type EditorContext with
+
+    --- Looks up an image asset by name, or nil when missing.
+    function image(self, name: string): Image?
+
+    --- Looks up a blob asset by name, or nil when missing.
+    function blob(self, name: string): Blob?
+
+    --- A fresh instance of a named artboard, private to this view. The
+    --- artboard's default view model instance is bound and reachable through
+    --- `data`, nil when the artboard has no view model.
+    ---
+    --- Names resolve against this script's own file, so a format shipped in a
+    --- library reaches that library's artboards. Prefix a name with a
+    --- library's namespace (`markdown@0/Document`) to name one explicitly,
+    --- and use `hostArtboard` for the file being edited.
+    function artboard(self, name: string): Artboard<ViewModel?>?
+
+    --- Like `artboard`, but always resolves in the file being edited. When
+    --- this script is authored in that same file the two are identical, so a
+    --- library developed in place behaves as it does once shipped.
+    function hostArtboard(self, name: string): Artboard<ViewModel?>?
+
+    --- The editor's current theme.
+    function theme(self): EditorTheme
+
+    --- Opens a url in the user's browser.
+    function openUrl(self, url: string)
+
+    --- The font the code editor renders with, for previews that want to
+    --- match its typography. Assign to a view model font property.
+    function themeFont(self): Font?
+
+    --- The editor's default UI font, for preview prose. Assign to a view
+    --- model font property.
+    function defaultFont(self): Font?
+
+    --- The editor's built-in code font, for preview code regions. Assign to
+    --- a view model font property.
+    function codeFont(self): Font?
+
+    --- The text editor's scroll position, refreshed each draw while the user
+    --- scrolls, or nil on surfaces without an attached editor (inspector,
+    --- viewer tab). Use with `scrollTo` to keep the preview in sync.
+    function editorScroll(self): EditorScroll?
+
+    --- Scrolls the pane hosting this view to a content offset, clamped to
+    --- the measured content. Only meaningful for pane views with `measure`;
+    --- elsewhere it is ignored.
+    function scrollTo(self, x: number, y: number): ()
+
+    --- Scrolls the attached text editor to a fractional line factor (the
+    --- same unit `editorScroll` reports), clamped to the editor's range.
+    --- Ignored without an attached editor. Guard against ping-pong when
+    --- combining with `editorScroll` driven syncing.
+    function scrollEditorTo(self, line: number): ()
+
+    --- Asks the host to repaint the view outside the advance loop, e.g. when
+    --- an async decode completes.
+    function requestDraw(self): ()
+
+end
+
+--- Where a FileFormat view is hosted: 'pane' for the editor split or full
+--- viewer tab, 'inspector' for the selected asset strip.
+export type FormatSurface = {
+    read kind: 'pane' | 'inspector',
+}
+
+--- A live preview of one document on one surface. Created by
+--- `FileFormat.view`; disposed when its surface closes.
+export type FormatView = {
+
+    --- Draws the current frame into a viewport of width by height.
+    draw: (self: FormatView, renderer: Renderer,
+        width: number, height: number) -> (),
+
+    --- Pane surfaces only: the content's intrinsic size for the given
+    --- viewport, driving the pane's scrollbars. Called when the view is
+    --- created, the document changes, the viewport resizes, or requestDraw
+    --- fires. Omit for fit-to-viewport views; the inspector never measures.
+    measure: ((self: FormatView, viewportWidth: number,
+        viewportHeight: number) -> (number, number))?,
+
+    --- Advances animation state. Return true to keep receiving frames.
+    advance: ((self: FormatView, seconds: number) -> boolean)?,
+
+    --- The user scrolled the text editor. x/y are scroll percentages and
+    --- line is the fractional top visible line. Never fired for scrolls the
+    --- host performed on the view's behalf (scrollEditorTo), so handlers can
+    --- follow without echo bookkeeping.
+    textScrolled: ((self: FormatView, x: number, y: number,
+        line: number, maxLine: number) -> ())?,
+
+    --- The user scrolled the preview pane (measured views only). x/y are the
+    --- new offsets in content coordinates. Never fired for scrolls the host
+    --- applied from `editor:scrollTo`.
+    paneScrolled: ((self: FormatView, x: number, y: number) -> ())?,
+
+    --- Raw wheel/trackpad input over an unmeasured (self-scrolling) preview,
+    --- in pixels with positive y scrolling down. Implement to route pane
+    --- input into the view's own scrolling; without it the host falls back
+    --- to scrolling the paired text editor.
+    paneWheel: ((self: FormatView, dx: number, dy: number) -> ())?,
+
+    --- Pointer input over the preview surface, in the same coordinate space
+    --- draw receives. Signatures match the Layout protocol so live artboards
+    --- can forward events directly (board:pointerDown(event), ...).
+    pointerDown: ((self: FormatView, event: PointerEvent) -> ())?,
+    pointerMove: ((self: FormatView, event: PointerEvent) -> ())?,
+    pointerUp: ((self: FormatView, event: PointerEvent) -> ())?,
+
+    --- Text documents only: the document changed; refresh derived state.
+    documentChanged: ((self: FormatView, doc: FormatDocument,
+        parsed: buffer?) -> ())?,
+
+    --- Text documents only: the primary cursor moved. line and column are
+    --- zero based code point coordinates.
+    selectionChanged: ((self: FormatView, line: number,
+        column: number) -> ())?,
+
+    --- The surface is closing; release resources.
+    dispose: ((self: FormatView) -> ())?,
+}
+
+--- Implement this protocol to add editor support for a custom binary file
+--- format. Files with a claimed extension import as blobs, keeping their raw
+--- bytes, and get previews from `view`. For text formats that should be
+--- editable in the editor, implement TextFileFormat instead.
+--- ```lua
+--- local format: FileFormat = {
+---     name = 'Model',
+---     extensions = { 'glb' },
+--- }
+---
+--- return function(): FileFormat
+---     return format
+--- end
+--- ```
+export type FileFormat = {
+
+    --- Display name of the format, e.g. "Markdown".
+    name: string,
+
+    --- File extensions handled, without dots, e.g. `{"md", "markdown"}`.
+    extensions: {string},
+
+    --- Optional. Called once per document version; the returned buffer is
+    --- cached by Rive, keyed to the document's content, and passed back into
+    --- every other callback. Within one VM the same buffer object is reused;
+    --- across VMs the bytes are copied once.
+    parse: ((self: FileFormat, doc: FormatDocument) -> buffer?)?,
+
+    --- Creates the preview for a document on a surface. Each surface gets
+    --- its own view; a document can be visible on several at once.
+    view: ((self: FileFormat,
+        doc: FormatDocument,
+        editor: EditorContext,
+        surface: FormatSurface,
+        parsed: buffer?) -> FormatView?)?,
+
+}
+
+--- A FileFormat for text. Files with a claimed extension import as in-band
+--- text documents, editable in the editor and synced across collaborators,
+--- and the callbacks below drive the text editor's intelligence. Documents
+--- export as plain blobs, so scripts read them via `context:blob(name)` at
+--- both edit time and runtime.
+---
+--- Analysis callbacks are pure functions of `(doc, parsed)`; state lives
+--- only in views. `parsed` carries the cached result of `parse`, or nil when
+--- `parse` is not implemented.
+--- ```lua
+--- local format: TextFileFormat = {
+---     name = 'Markdown',
+---     extensions = { 'md' },
+--- }
+---
+--- return function(): TextFileFormat
+---     return format
+--- end
+--- ```
+export type TextFileFormat = {
+
+    --- Display name of the format, e.g. "Markdown".
+    name: string,
+
+    --- File extensions handled, without dots, e.g. `{"md", "markdown"}`.
+    extensions: {string},
+
+    --- Optional. Called once per document version; the returned buffer is
+    --- cached by Rive, keyed to the document's content, and passed back into
+    --- every other callback. Within one VM the same buffer object is reused;
+    --- across VMs the bytes are copied once.
+    parse: ((self: TextFileFormat, doc: FormatDocument) -> buffer?)?,
+
+    --- Creates the preview for a document on a surface. Each surface gets
+    --- its own view; a document can be visible on several at once.
+    view: ((self: TextFileFormat,
+        doc: FormatDocument,
+        editor: EditorContext,
+        surface: FormatSurface,
+        parsed: buffer?) -> FormatView?)?,
+
+    --- Returns highlight tokens for the document.
+    highlight: ((self: TextFileFormat, doc: FormatDocument,
+        parsed: buffer?) -> {FormatToken})?,
+
+    --- Returns problems for the document.
+    diagnostics: ((self: TextFileFormat, doc: FormatDocument,
+        parsed: buffer?) -> {FormatDiagnostic})?,
+
+    --- Returns completions at the given position.
+    completions: ((self: TextFileFormat,
+        doc: FormatDocument,
+        line: number,
+        column: number,
+        parsed: buffer?) -> {FormatCompletion})?,
+
+    --- Returns hover documentation at the given position, or nil.
+    hover: ((self: TextFileFormat,
+        doc: FormatDocument,
+        line: number,
+        column: number,
+        parsed: buffer?) -> FormatHover?)?,
+
+    --- Returns the fully formatted text, or nil to leave the document
+    --- unchanged. Rive diffs the result against the current text and applies
+    --- minimal edits.
+    format: ((self: TextFileFormat, doc: FormatDocument,
+        parsed: buffer?) -> string?)?,
 }
 
 -- =============================================================================
@@ -3004,6 +3489,8 @@ export type Tester = {
     --- **Define a single test** with a name and a callback that receives the
     --- `expect` factory. If any expectation inside fails, the test fails.
     case: (name: string, fn: (expect: Expect) -> ()) -> (),
+    --- Look up a blob fixture by name. Returns nil when it is missing.
+    blob: (name: string) -> Blob?,
 }
 
 --- **Test script module type.** A Test script returns a factory producing the

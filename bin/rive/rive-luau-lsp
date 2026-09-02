@@ -11,9 +11,29 @@
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-LUAU_LSP="${SCRIPT_DIR}/luau-lsp"
-RIVE_DEFS="${REPO_DIR}/extension/definitions/rive-globals.d.luau"
-RIVE_DOCS="${REPO_DIR}/extension/definitions/luau-api-docs.json"
+LUAU_LSP="${RIVE_LUAU_LSP_BIN:-${SCRIPT_DIR}/luau-lsp}"
+
+if [ ! -x "${LUAU_LSP}" ] && [ -x "${SCRIPT_DIR}/luau-lsp.exe" ]; then
+    LUAU_LSP="${SCRIPT_DIR}/luau-lsp.exe"
+fi
+
+# Release archives flatten the binary, wrappers, definitions, and docs into
+# one directory. Repository checkouts keep definitions under extension/.
+if [ -n "${RIVE_LUAU_DEFS_FILE:-}" ]; then
+    RIVE_DEFS="${RIVE_LUAU_DEFS_FILE}"
+elif [ -f "${SCRIPT_DIR}/rive-globals.d.luau" ]; then
+    RIVE_DEFS="${SCRIPT_DIR}/rive-globals.d.luau"
+else
+    RIVE_DEFS="${REPO_DIR}/extension/definitions/rive-globals.d.luau"
+fi
+
+if [ -n "${RIVE_LUAU_DOCS_FILE:-}" ]; then
+    RIVE_DOCS="${RIVE_LUAU_DOCS_FILE}"
+elif [ -f "${SCRIPT_DIR}/luau-api-docs.json" ]; then
+    RIVE_DOCS="${SCRIPT_DIR}/luau-api-docs.json"
+else
+    RIVE_DOCS="${REPO_DIR}/extension/definitions/luau-api-docs.json"
+fi
 
 if [ ! -x "${LUAU_LSP}" ] && [ -x "${REPO_DIR}/build/luau-lsp" ]; then
     LUAU_LSP="${REPO_DIR}/build/luau-lsp"

@@ -7,6 +7,8 @@
 #include "Luau/TimeTrace.h"
 #include "LuauFileUtils.hpp"
 
+LUAU_FASTFLAG(LuauSolverV2)
+
 bool usingPullDiagnostics(const lsp::ClientCapabilities& capabilities)
 {
     return capabilities.textDocument && capabilities.textDocument->diagnostic;
@@ -280,7 +282,7 @@ lsp::PartialResponse<lsp::WorkspaceDiagnosticReport> LanguageServer::workspaceDi
     }
 }
 
-void Client::terminateWorkspaceDiagnostics(bool retriggerRequest)
+void LSPClient::terminateWorkspaceDiagnostics(bool retriggerRequest)
 {
     lsp::DiagnosticServerCancellationData cancellationData{retriggerRequest};
 

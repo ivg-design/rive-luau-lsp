@@ -157,9 +157,22 @@ struct ClientCompletionImportsConfiguration
     bool separateGroupsWithLine = false;
     /// Files that match these globs will not be shown during auto-import
     std::vector<std::string> ignoreGlobs{"**/_Index/**"};
+    /// Whether to use `const` instead of `local` for auto-imported declarations
+    bool useConst = false;
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ClientCompletionImportsConfiguration, enabled, suggestServices, includedServices, excludedServices,
-    suggestRequires, requireStyle, stringRequires, separateGroupsWithLine, ignoreGlobs);
+    suggestRequires, requireStyle, stringRequires, separateGroupsWithLine, ignoreGlobs, useConst);
+
+struct ClientCompletionAnonymousAutofillConfiguration
+{
+    /// Whether to show the "function (anonymous autofilled)" generated function completion entry
+    bool enabled = true;
+    /// Whether to include type annotations in the generated function snippet
+    bool addTypeAnnotations = true;
+    /// Whether to add snippet tabstops on each parameter name for quick editing
+    bool addTabstopForParameters = true;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ClientCompletionAnonymousAutofillConfiguration, enabled, addTypeAnnotations, addTabstopForParameters);
 
 struct ClientCompletionConfiguration
 {
@@ -182,15 +195,18 @@ struct ClientCompletionConfiguration
     /// Whether to show keywords (`if` / `then` / `and` / etc.) during autocomplete
     bool showKeywords = true;
     /// Whether to show the "function (anonymous autofilled)" generated function entry
+    /// DEPRECATED: USE `completion.anonymousAutofilledFunction.enabled` INSTEAD
     bool showAnonymousAutofilledFunction = true;
+    /// Configuration for the anonymous autofilled function completion entry
+    ClientCompletionAnonymousAutofillConfiguration anonymousAutofilledFunction{};
     /// Whether to show deprecated items in autocomplete suggestions
     bool showDeprecatedItems = true;
-    /// Enables the experimental fragment autocomplete system for performance improvements
-    bool enableFragmentAutocomplete = false;
+    /// Enables the fragment autocomplete system for performance improvements
+    bool enableFragmentAutocomplete = true;
 };
-
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ClientCompletionConfiguration, enabled, autocompleteEnd, suggestImports, imports, addParentheses,
-    addTabstopAfterParentheses, fillCallArguments, showPropertiesOnMethodCall, showKeywords, showAnonymousAutofilledFunction, showDeprecatedItems, enableFragmentAutocomplete);
+    addTabstopAfterParentheses, fillCallArguments, showPropertiesOnMethodCall, showKeywords, showAnonymousAutofilledFunction, anonymousAutofilledFunction,
+    showDeprecatedItems, enableFragmentAutocomplete);
 
 struct ClientSignatureHelpConfiguration
 {
@@ -252,6 +268,26 @@ struct ClientFormatConfiguration
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ClientFormatConfiguration, convertQuotes);
 
+struct ClientPluginFileSystemConfiguration
+{
+    /// Whether filesystem access is enabled for plugins
+    bool enabled = false;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ClientPluginFileSystemConfiguration, enabled)
+
+struct ClientPluginConfiguration
+{
+    /// Whether plugins are enabled
+    bool enabled = false;
+    /// Paths to plugin Luau scripts
+    std::vector<std::string> paths{};
+    /// Timeout for plugin execution in milliseconds
+    size_t timeoutMs = 5000;
+    /// Configuration for plugin filesystem access
+    ClientPluginFileSystemConfiguration fileSystem{};
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ClientPluginConfiguration, enabled, paths, timeoutMs, fileSystem)
+
 enum struct LSPPlatformConfig
 {
     Standard,
@@ -290,6 +326,7 @@ struct ClientConfiguration
     ClientFFlagsConfiguration fflags{};
     ClientBytecodeConfiguration bytecode{};
     ClientFormatConfiguration format{};
+    ClientPluginConfiguration plugins{};
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ClientConfiguration, autocompleteEnd, ignoreGlobs, platform, sourcemap, diagnostics, types,
-    inlayHints, hover, completion, signatureHelp, require, index, fflags, bytecode, format);
+    inlayHints, hover, completion, signatureHelp, require, index, fflags, bytecode, format, plugins);

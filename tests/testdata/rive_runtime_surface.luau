@@ -66,7 +66,10 @@ function draw(self: RuntimeProbe, renderer: Renderer)
         canvasRenderer:save()
         canvasRenderer:restore()
         self.canvas:endFrame()
-        renderer:drawImage(self.canvas.image, ImageSampler("clamp", "clamp", "bilinear"), "srcOver", 1)
+        local canvasImage = self.canvas.image
+        if canvasImage then
+            renderer:drawImage(canvasImage, ImageSampler("clamp", "clamp", "bilinear"), "srcOver", 1)
+        end
     end
 end
 
@@ -85,11 +88,6 @@ function performAction(self: RuntimeProbe, context: ListenerContext)
         local focus = context:asFocus()
         if focus then
             print(focus.isFocus)
-        end
-    elseif context:isGamepad() then
-        local gamepad = context:asGamepad()
-        if gamepad then
-            print(gamepad.deviceId, gamepad.buttonMask, gamepad.axis0)
         end
     elseif context:isReportedEvent() then
         local reported = context:asReportedEvent()

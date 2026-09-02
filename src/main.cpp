@@ -131,7 +131,7 @@ int startLanguageServer(const argparse::ArgumentParser& program)
         transport = std::make_unique<StdioTransport>();
     }
 
-    Client client{std::move(transport)};
+    LSPClient client{std::move(transport)};
     client.definitionsFiles = definitionsFiles;
     client.documentationFiles = documentationFiles;
     parseDocumentation(documentationFiles, client.documentation, &client);
@@ -148,7 +148,7 @@ int startLanguageServer(const argparse::ArgumentParser& program)
         }
     }
 
-    LanguageServer server(&client, defaultConfig);
+    LanguageServer server(&client, defaultConfig, program.is_used("--force-strict-mode"));
 
     // Begin input loop
     server.processInputLoop();
@@ -275,6 +275,10 @@ int main(int argc, char** argv)
         .metavar("PATH");
     lsp_command.add_argument("--base-luaurc").help("path to a .luaurc file which acts as the base default configuration").metavar("PATH");
     lsp_command.add_argument("--settings").help("path to LSP settings to use as default").metavar("PATH");
+    lsp_command.add_argument("--force-strict-mode")
+        .help("force strict mode for all files, overriding workspace .luaurc languageMode")
+        .default_value(false)
+        .implicit_value(true);
     lsp_command.add_argument("--delay-startup")
         .help("debug flag to halt startup to allow connection of a debugger")
         .default_value(false)
