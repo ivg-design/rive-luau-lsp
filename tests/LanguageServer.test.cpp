@@ -9,7 +9,7 @@ LUAU_FASTFLAG(DebugLuauTimeTracing)
 
 TEST_CASE("language_server_handles_fflags_in_initialization_options")
 {
-    Client client;
+    TestClient client;
     LanguageServer server(&client, std::nullopt);
 
     InitializationOptions initializationOptions{};
@@ -27,9 +27,28 @@ TEST_CASE("language_server_handles_fflags_in_initialization_options")
     FFlag::DebugLuauTimeTracing.value = false;
 }
 
+TEST_CASE("language_server_honors_launcher_forced_strict_mode")
+{
+    TestClient client;
+    LanguageServer server(&client, std::nullopt, true);
+
+    auto workspaceUri = Uri::file("project");
+    lsp::InitializeParams initializeParams;
+    initializeParams.workspaceFolders = std::vector<lsp::WorkspaceFolder>{{workspaceUri, "project"}};
+
+    server.onRequest(0, "initialize", initializeParams);
+
+    auto workspaceFolder = server.findWorkspace(workspaceUri.resolvePath("example.luau"), /* shouldInitialize= */ false);
+    REQUIRE(workspaceFolder);
+    CHECK(workspaceFolder->fileResolver.forceStrictMode);
+    CHECK_EQ(workspaceFolder->fileResolver.defaultConfig.mode, Luau::Mode::Strict);
+
+    server.shutdown();
+}
+
 TEST_CASE("language_server_lazily_initializes_workspace_folders")
 {
-    Client client;
+    TestClient client;
     LanguageServer server(&client, std::nullopt);
 
     // Indexing throws errors as the workspace doesn't exist

@@ -39,8 +39,11 @@ class LanguageServer
 {
 private:
     // Client is guaranteed to live for the duration of the whole program
-    Client* client;
+    LSPClient* client;
     std::optional<Luau::Config> defaultConfig;
+    /// Strict mode requested by the server launcher. Initialization options
+    /// may also enable it, but cannot disable this launcher-level guarantee.
+    bool forceStrictModeByDefault = false;
     // A "in memory" workspace folder which doesn't actually have a root.
     // Any files which aren't part of a workspace but are opened will be handled here.
     // This is common if the client has not yet opened a folder
@@ -50,7 +53,7 @@ private:
     std::vector<json_rpc::JsonRpcMessage> configPostponedMessages;
 
 public:
-    explicit LanguageServer(Client* aClient, std::optional<Luau::Config> aDefaultConfig);
+    explicit LanguageServer(LSPClient* aClient, std::optional<Luau::Config> aDefaultConfig, bool aForceStrictModeByDefault = false);
 
     static lsp::ServerCapabilities getServerCapabilities();
 

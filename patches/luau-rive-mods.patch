@@ -1,5 +1,5 @@
 diff --git a/Analysis/include/Luau/Scope.h b/Analysis/include/Luau/Scope.h
-index 55a49786..7280bcbf 100644
+index 90b22954..8e1c106e 100644
 --- a/Analysis/include/Luau/Scope.h
 +++ b/Analysis/include/Luau/Scope.h
 @@ -52,7 +52,13 @@ struct Scope
@@ -10,18 +10,18 @@ index 55a49786..7280bcbf 100644
 +    struct ImportedTypeNamespace
 +    {
 +        std::unordered_map<Name, TypeFun> members;
-+        std::optional<TypeFun> fallback; // resolves any unknown name in this namespace
++        std::optional<TypeFun> fallback;
 +    };
 +
 +    std::unordered_map<Name, ImportedTypeNamespace> importedTypeBindings;
  
-     DenseHashSet<Name> builtinTypeNames{""};
+     DenseHashSet2<Name> builtinTypeNames;
      void addBuiltinTypeBinding(const Name& name, const TypeFun& tyFun);
 diff --git a/Analysis/src/AutocompleteCore.cpp b/Analysis/src/AutocompleteCore.cpp
-index 93d7f531..890f675a 100644
+index 81fcd360..a5a3ac94 100644
 --- a/Analysis/src/AutocompleteCore.cpp
 +++ b/Analysis/src/AutocompleteCore.cpp
-@@ -613,7 +613,7 @@ AutocompleteEntryMap autocompleteModuleTypes(const Module& module, const ScopePt
+@@ -798,7 +798,7 @@ AutocompleteEntryMap autocompleteModuleTypes(const Module& module, const ScopePt
      {
          if (auto it = scope->importedTypeBindings.find(std::string(moduleName)); it != scope->importedTypeBindings.end())
          {
@@ -31,10 +31,10 @@ index 93d7f531..890f675a 100644
  
              break;
 diff --git a/Analysis/src/ConstraintGenerator.cpp b/Analysis/src/ConstraintGenerator.cpp
-index 87d5b842..9ed6846e 100644
+index c6540ab4..d967643a 100644
 --- a/Analysis/src/ConstraintGenerator.cpp
 +++ b/Analysis/src/ConstraintGenerator.cpp
-@@ -1260,7 +1260,7 @@ ControlFlow ConstraintGenerator::visit(const ScopePtr& scope, AstStatLocal* stat
+@@ -1575,7 +1575,7 @@ ControlFlow ConstraintGenerator::visit(const ScopePtr& scope, AstStatLocal* stat
                  continue;
  
              const Name name{statLocal->vars.data[i]->name.value};
@@ -43,7 +43,7 @@ index 87d5b842..9ed6846e 100644
              scope->importedModules[name] = moduleInfo->name;
  
              // Imported typeArguments of requires that transitively refer to current module have to be replaced with 'any'
-@@ -1269,7 +1269,7 @@ ControlFlow ConstraintGenerator::visit(const ScopePtr& scope, AstStatLocal* stat
+@@ -1584,7 +1584,7 @@ ControlFlow ConstraintGenerator::visit(const ScopePtr& scope, AstStatLocal* stat
                  if (path.empty() || path.front() != moduleInfo->name)
                      continue;
  
@@ -53,10 +53,10 @@ index 87d5b842..9ed6846e 100644
              }
          }
 diff --git a/Analysis/src/FragmentAutocomplete.cpp b/Analysis/src/FragmentAutocomplete.cpp
-index 2c191e4a..8379a663 100644
+index fda1fdd5..88c73de9 100644
 --- a/Analysis/src/FragmentAutocomplete.cpp
 +++ b/Analysis/src/FragmentAutocomplete.cpp
-@@ -711,7 +711,7 @@ void cloneTypesFromFragment(
+@@ -751,7 +751,7 @@ void cloneTypesFromFragment(
      {
          if (std::optional<TypeFun> tf = staleScope->lookupImportedType(mod, name))
          {
@@ -66,10 +66,10 @@ index 2c191e4a..8379a663 100644
      }
  
 diff --git a/Analysis/src/Scope.cpp b/Analysis/src/Scope.cpp
-index 2894a279..4f25b908 100644
+index 86299516..f104062b 100644
 --- a/Analysis/src/Scope.cpp
 +++ b/Analysis/src/Scope.cpp
-@@ -136,20 +136,17 @@ std::optional<TypeFun> Scope::lookupImportedType(const Name& moduleAlias, const
+@@ -132,20 +132,17 @@ std::optional<TypeFun> Scope::lookupImportedType(const Name& moduleAlias, const
      while (scope)
      {
          auto it = scope->importedTypeBindings.find(moduleAlias);
@@ -98,10 +98,10 @@ index 2894a279..4f25b908 100644
  
      return std::nullopt;
 diff --git a/Analysis/src/ToString.cpp b/Analysis/src/ToString.cpp
-index bbfb2596..83ae4639 100644
+index 4cb95633..4d9780c5 100644
 --- a/Analysis/src/ToString.cpp
 +++ b/Analysis/src/ToString.cpp
-@@ -146,7 +146,7 @@ static std::pair<bool, std::optional<Luau::Name>> canUseTypeNameInScope(ScopePtr
+@@ -144,7 +144,7 @@ static std::pair<bool, std::optional<Luau::Name>> canUseTypeNameInScope(ScopePtr
      {
          for (const auto& [importName, nameTable] : curr->importedTypeBindings)
          {
@@ -111,10 +111,10 @@ index bbfb2596..83ae4639 100644
          }
  
 diff --git a/Analysis/src/TypeInfer.cpp b/Analysis/src/TypeInfer.cpp
-index dd9ee668..48a6594c 100644
+index 6f3498be..530a7690 100644
 --- a/Analysis/src/TypeInfer.cpp
 +++ b/Analysis/src/TypeInfer.cpp
-@@ -1128,7 +1128,7 @@ ControlFlow TypeChecker::check(const ScopePtr& scope, const AstStatLocal& local)
+@@ -1137,7 +1137,7 @@ ControlFlow TypeChecker::check(const ScopePtr& scope, const AstStatLocal& local)
  
                      if (ModulePtr module = resolver->getModule(moduleInfo->name))
                      {
@@ -123,7 +123,7 @@ index dd9ee668..48a6594c 100644
                          scope->importedModules[name] = moduleInfo->name;
  
                          // Imported typeArguments of requires that transitively refer to current module have to be replaced with 'any'
-@@ -1136,7 +1136,7 @@ ControlFlow TypeChecker::check(const ScopePtr& scope, const AstStatLocal& local)
+@@ -1145,7 +1145,7 @@ ControlFlow TypeChecker::check(const ScopePtr& scope, const AstStatLocal& local)
                          {
                              if (!path.empty() && path.front() == moduleInfo->name)
                              {

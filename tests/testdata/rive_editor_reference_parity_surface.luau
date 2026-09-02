@@ -1,5 +1,5 @@
 -- Static acceptance fixture for callable members present in the live Rive
--- Beta scripting reference on 2026-08-14. Gamepad callbacks are reference-
+-- scripting reference on 2026-09-01. Gamepad callbacks are reference-
 -- confirmed (Coming soon) rather than runtime-triggered by this fixture.
 
 local function _checkMatrices(a2: Mat2D, b2: Mat2D, a4: Mat4, b4: Mat4)
@@ -43,9 +43,9 @@ local function _checkReferenceEvents(
     print(legacyKeyboard, legacyText, legacyFocus)
 end
 
-local function _checkLegacyReported(event: ReportedEventInvocation)
-    -- The live ReportedEvent is empty. Keep the earlier declaration available
-    -- without claiming its LSP-only field on the current Editor event type.
+local function _checkRuntimeReported(event: ReportedEventInvocation)
+    -- The live Editor ReportedEvent is empty. Keep the exact runtime-v0.1.344
+    -- invocation payload separate from the current Editor event type.
     print(event.delaySeconds)
 end
 
@@ -200,13 +200,6 @@ local function _checkListener(context: ListenerContext)
         end
     end
 
-    -- Preserve acceptance of the earlier aggregate LSP declaration.
-    if context:isGamepad() then
-        local legacy = context:asGamepad()
-        if legacy then
-            print(legacy.deviceId, legacy.buttonMask, legacy.axis0)
-        end
-    end
 end
 
 type ReferenceNode = {}

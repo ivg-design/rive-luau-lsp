@@ -2,6 +2,27 @@
 
 All notable changes to the Rive Luau LSP extension will be documented in this file.
 
+## [1.2.0] - 2026-09-01
+
+### Changed - canonical Web 2.41.1 / runtime-v0.1.344 toolchain
+
+- Reconcile the fork with luau-lsp 1.69.0 and Luau 0.736 while preserving Rive's forced-strict configuration, imported `Data` namespace fallback, ancestor-walking bare `require()` resolution, local hover documentation, and warning-level lint behavior. Migrate the bundled declarations to Luau 0.736's `declare extern type` syntax and regenerate the tracked Luau patch.
+- Add the stable Editor `FileFormat` and `TextFileFormat` surface: `FormatDocument`, scopes, tokens, diagnostics, completions, hover, `FormatView`, `FormatSurface`, editor theme/scroll/context data, and lifecycle callbacks.
+- Declare the exact runtime-v0.1.344 `buffer.readf16`, `buffer.writef16`, `buffer.stridedcopy`, and `buffer.convert` helpers while preserving Luau 0.736's full built-in buffer table.
+- Close released runtime gaps for `PointerEvent.previousPosition`/`timeStamp`, `AudioSource.duration`, gamepad forwarding on `Artboard`, `GPUBindGroupLayoutDesc.fragment`, `VertexBuffer`/`TriangleBuffer` mutation, `PathCommand`/`PathData`/`EnumValues` length, `Tester.blob`, optional named `ViewModel:instance`, and optional `Layout.resize(self, size, displayScale)`. Runtime 344 redispatches resize after a presenting-surface scale change and remains compatible with existing two-parameter Luau callbacks.
+- Keep runtime-sensitive declarations conservative: empty `Blob.data` is `buffer?` and has no `asString`; `Canvas.image` and `GPUCanvas.image` are optional; `PropertyList` exposes `length`, numeric indexing, and source-backed mutations without phantom `count` or `item`; bare `Artboard` defaults to `Artboard<nil>`.
+- Keep evidence tiers visible. `FileFormat` and `TextFileFormat` are stable Editor protocols; source-backed GPU declarations remain early access; `Context.log` and APIs labeled **Coming soon** remain annotated as Editor/reference surfaces. `Interpolator` callbacks stay optional to match runtime 344's linear fallbacks even though the current Editor reference lists them as required. Retired `drawCanvas`, unsupported `Animation:play`, and stale aggregate gamepad accessors remain rejected.
+- Keep module resolution on authored `require("name")` values; host serialization and compiled-module identifiers are not declared as Luau globals or source-level module names.
+- Make the CLI wrappers work both in source checkouts and flat release archives, require analyzer options before input paths, preserve analyzer process statuses, classify diagnostics consistently even when the formatter exits 0, suppress only the routine definitions-load info line, and make the LSP subcommand accept the wrapper's forced-strict launch option.
+- Refuse to package a VSIX when its host native binary, Rive declarations, or Luau documentation are missing or empty.
+- Map source and build roots out of GCC/Clang release binaries so packaged diagnostics do not disclose checkout or CI workspace locations.
+- Correct public installation guidance: release archives are the default path, a source checkout must build the native server before use, the canonical repository is `ivg-design/rive-luau-lsp`, and analyzer-clean output is static evidence rather than Editor/runtime execution proof.
+- Build and test one native binary per VSIX architecture in the release workflow, run the full C++ suite and strict Rive fixtures before publishing, and attach the required five native VSIX packages plus three host CLI archives. Each CLI archive includes both wrappers, definitions, docs, README, changelog, license, and attribution.
+
+### Tests
+
+- Add positive fixtures for the full FileFormat surface, the retained runtime-v0.1.316 additions, runtime-v0.1.344 Layout scale dispatch, and every script protocol; add negative coverage for retired, stale, unsupported, and host-only names; add direct regressions for Rive bare-require and strict-mode behavior plus shell tests for analyzer/LSP wrapper argument ordering, output, and exit propagation.
+
 ## [1.1.8] - 2026-08-14
 
 ### Fixed - runtime v0.1.262 scripting surface parity
@@ -9,7 +30,7 @@ All notable changes to the Rive Luau LSP extension will be documented in this fi
 - Remove the retired `Node.drawCanvas` callback; Canvas and GPUCanvas recording belongs in `draw(self, renderer)`.
 - Add callable declarations and focused coverage for `Vector.xyz`, `Vector.cross3`, vector buffer writes, `Mat4.lookAt`, `Mat4.ortho`, ranged `GPUBuffer:write`, global ViewModels, and `ViewModel:getFont`/`getBlob`.
 - Document library-scoped `context:blob` and `context:shader` references and preserve `GPUTextureView.format` as Early Access API surface.
-- Match the live Editor reference for `Mat2D`/`Mat4` equality; `AudioSound.pause`/`resume`/`play`; `PointerType` and `PointerEvent.type`; `KeyPhase`; the exact `KeyboardEvent`, `TextInput`, `FocusEvent`, `ReportedEvent`, `ViewModelChange`, and `NoneEvent` names; and the full connected/event/disconnected gamepad payloads, ListenerContext accessors, and Node callbacks. A live Editor analyzer probe accepted the complete surface, and Mat2D/Mat4 equality additionally passed runtime assertions. The Editor labels the newer listener/gamepad types Coming soon, so callbacks and AudioSound transport retain analyzer/reference—not runtime execution—evidence. Compatible legacy `*Invocation` aliases and callbacks remain accepted where type-compatible. `ReportedEventInvocation.delaySeconds` remains a separately nameable legacy type, but `ListenerContext:asReportedEvent()` returns the current empty `ReportedEvent`; negative coverage prevents the legacy field from leaking through that accessor.
+- Match the live Editor reference for `Mat2D`/`Mat4` equality; `AudioSound.pause`/`resume`/`play`; `PointerType` and `PointerEvent.type`; `KeyPhase`; the exact `KeyboardEvent`, `TextInput`, `FocusEvent`, `ReportedEvent`, `ViewModelChange`, and `NoneEvent` names; and the full connected/event/disconnected gamepad payloads, ListenerContext accessors, and Node callbacks. A live Editor analyzer probe accepted the complete surface, and Mat2D/Mat4 equality additionally passed runtime assertions. The Editor labels the newer listener/gamepad types Coming soon, so callbacks and AudioSound transport retain analyzer/reference—not runtime execution—evidence. Compatible legacy `*Invocation` aliases and callbacks remain accepted where type-compatible. `ReportedEventInvocation.delaySeconds` remains separately nameable as a runtime dispatch payload, but `ListenerContext:asReportedEvent()` returns the current empty Editor `ReportedEvent`; negative coverage prevents the runtime-only field from leaking through that accessor.
 - Make `bin/rive/rive-luau-analyze` return status 1 whenever analyzer diagnostics are emitted, status 0 only for a clean result, and preserve genuine analyzer process failures and their output. Correct repository-checkout documentation to the `bin/rive/` executable paths while retaining the flattened `./rive-luau-analyze` path used by macOS/Linux release archives.
 
 ## [1.1.7] - 2026-06-12

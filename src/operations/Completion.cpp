@@ -15,6 +15,43 @@
 
 LUAU_FASTFLAG(LuauSolverV2)
 
+// Distinguishes a real broken expression (e.g. an unterminated `BrokenString` lexeme spans
+// the offending content) from a synthesized "missing expression" error (zero-width location
+// at a token boundary, produced when the parser expected an expression but found nothing).
+static bool isBrokenExpr(Luau::AstExpr* expr)
+{
+    if (!expr)
+        return false;
+    auto* err = expr->as<Luau::AstExprError>();
+    return err && err->location.begin != err->location.end;
+}
+
+// Auto-inserting then/do when the control expression is broken would land the keyword inside
+// what the user intended to be a string literal.
+static bool shouldSuppressKeywordInsertion(Luau::AstNode* parent, bool cursorInError)
+{
+    if (auto* statIf = parent->as<Luau::AstStatIf>(); statIf && !statIf->thenLocation)
+        return cursorInError || isBrokenExpr(statIf->condition);
+    if (auto* statWhile = parent->as<Luau::AstStatWhile>(); statWhile && !statWhile->hasDo)
+        return cursorInError || isBrokenExpr(statWhile->condition);
+    if (auto* statForIn = parent->as<Luau::AstStatForIn>(); statForIn && !statForIn->hasDo)
+    {
+        if (cursorInError)
+            return true;
+        for (auto* v : statForIn->values)
+            if (isBrokenExpr(v))
+                return true;
+        return false;
+    }
+    if (auto* statFor = parent->as<Luau::AstStatFor>(); statFor && !statFor->hasDo)
+    {
+        if (cursorInError)
+            return true;
+        return isBrokenExpr(statFor->from) || isBrokenExpr(statFor->to) || (statFor->step && isBrokenExpr(statFor->step));
+    }
+    return false;
+}
+
 static Luau::AstNode* getParentNode(const std::vector<Luau::AstNode*> ancestry)
 {
     if (ancestry.size() < 2)
@@ -46,6 +83,12 @@ void WorkspaceFolder::endAutocompletion(const lsp::CompletionParams& params)
     if (ancestry.size() < 2)
         return;
 
+    // When Enter is pressed inside a string literal (e.g. `if "|"`), the string becomes
+    // broken: the remaining quote lands on the cursor's line as an error statement in the AST.
+    // Capture this *before* stripping error nodes from the ancestry.
+    bool cursorIsInErrorNode = (ancestry.back()->is<Luau::AstStatError>() || ancestry.back()->is<Luau::AstExprError>()) &&
+        ancestry.back()->location.begin.line == position.line;
+
     // Remove error nodes from end of ancestry chain
     while (ancestry.size() > 0 && (ancestry.back()->is<Luau::AstStatError>() || ancestry.back()->is<Luau::AstExprError>()))
         ancestry.pop_back();
@@ -68,6 +111,11 @@ void WorkspaceFolder::endAutocompletion(const lsp::CompletionParams& params)
     if (!currentNode->is<Luau::AstStatBlock>())
         return;
     if (params.position.line - currentNode->location.begin.line > 1)
+        return;
+
+    auto parentNode = getParentNode(ancestry);
+
+    if (parentNode && shouldSuppressKeywordInsertion(parentNode, cursorIsInErrorNode))
         return;
 
     auto unclosedBlock = false;
@@ -106,7 +154,6 @@ void WorkspaceFolder::endAutocompletion(const lsp::CompletionParams& params)
 
     // TODO: handle `until` for repeat: `until` can be inserted if `hasEnd` in a repeat block is false
 
-    auto parentNode = getParentNode(ancestry);
     if (parentNode)
     {
         if (auto* statIf = parentNode->as<Luau::AstStatIf>(); statIf && statIf->condition && !statIf->thenLocation)
@@ -262,7 +309,7 @@ static bool deprecated(const Luau::AutocompleteEntry& entry, std::optional<lsp::
     }
 
     if (documentation)
-        if (documentation->value.find("@deprecated") != std::string::npos)
+        if (documentation->value.find("@deprecated") != std::string::npos || documentation->value.find("**Deprecated**") != std::string::npos)
             return true;
 
     return false;
@@ -373,6 +420,133 @@ static bool isKeyword(std::string_view s)
 static bool isIdentifier(std::string_view s)
 {
     return Luau::isIdentifier(s) && !isKeyword(s);
+}
+
+static bool canSuggestType(Luau::TypeId ty)
+{
+    ty = Luau::follow(ty);
+    if (Luau::get<Luau::AnyType>(ty) || Luau::get<Luau::ErrorType>(ty) || Luau::get<Luau::GenericType>(ty) || Luau::get<Luau::FreeType>(ty))
+        return false;
+    if (Luau::get<Luau::MetatableType>(ty))
+        return false;
+    if (const Luau::TableType* ttv = Luau::get<Luau::TableType>(ty))
+    {
+        if (ttv->name)
+            return true;
+        if (ttv->syntheticName)
+            return false;
+    }
+    return true;
+}
+
+static bool canSuggestTypePack(Luau::TypePackId tp)
+{
+    tp = Luau::follow(tp);
+    if (Luau::get<Luau::ErrorTypePack>(tp) || Luau::get<Luau::GenericTypePack>(tp) || Luau::get<Luau::FreeTypePack>(tp))
+        return false;
+    auto [head, tail] = Luau::flatten(tp);
+    for (Luau::TypeId headTy : head)
+        if (!canSuggestType(headTy))
+            return false;
+    return true;
+}
+
+template <typename T>
+static std::optional<std::string> tryGetAnnotation(const Luau::ScopePtr& scope, T ty)
+{
+    Luau::ToStringOptions opts;
+    opts.useLineBreaks = false;
+    opts.hideTableKind = true;
+    opts.functionTypeArguments = true;
+    opts.scope = scope;
+    auto result = Luau::toStringDetailed(ty, opts);
+    if (result.error || result.invalid || result.cycle || result.truncated)
+        return std::nullopt;
+    return result.name;
+}
+
+static std::optional<std::string> tryGetTypeAnnotation(const Luau::ScopePtr& scope, Luau::TypeId ty)
+{
+    if (!canSuggestType(ty))
+        return std::nullopt;
+    return tryGetAnnotation(scope, ty);
+}
+
+static std::optional<std::string> tryGetTypePackAnnotation(const Luau::ScopePtr& scope, Luau::TypePackId tp)
+{
+    if (!canSuggestTypePack(tp))
+        return std::nullopt;
+    return tryGetAnnotation(scope, tp);
+}
+
+static std::string buildGeneratedFunctionSnippet(
+    const Luau::FunctionType* ftv, const Luau::ScopePtr& scope, bool addTypeAnnotations, bool addTabstopForParameters)
+{
+    std::string snippet = "function(";
+
+    auto [args, tail] = Luau::flatten(ftv->argTypes);
+
+    bool first = true;
+    size_t snippetIndex = 1;
+
+    for (size_t argIdx = 0; argIdx < args.size(); ++argIdx)
+    {
+        if (!first)
+            snippet += ", ";
+        else
+            first = false;
+
+        std::string name;
+        if (argIdx < ftv->argNames.size() && ftv->argNames[argIdx])
+            name = ftv->argNames[argIdx]->name;
+        else
+            name = "a" + std::to_string(argIdx);
+
+        if (addTabstopForParameters)
+            snippet += "${" + std::to_string(snippetIndex++) + ":" + name + "}";
+        else
+            snippet += name;
+
+        if (addTypeAnnotations)
+            if (auto typeStr = tryGetTypeAnnotation(scope, args[argIdx]))
+                snippet += ": " + *typeStr;
+    }
+
+    if (tail && (Luau::isVariadic(*tail) || Luau::get<Luau::FreeTypePack>(Luau::follow(*tail))))
+    {
+        if (!first)
+            snippet += ", ";
+
+        std::optional<std::string> varArgType;
+        if (addTypeAnnotations)
+            if (const auto* pack = Luau::get<Luau::VariadicTypePack>(Luau::follow(*tail)))
+                varArgType = tryGetTypeAnnotation(scope, pack->ty);
+
+        snippet += varArgType ? "...: " + *varArgType : "...";
+    }
+
+    snippet += ")";
+
+    if (addTypeAnnotations)
+    {
+        auto [rets, retTail] = Luau::flatten(ftv->retTypes);
+        if (const size_t totalRetSize = rets.size() + (retTail ? 1 : 0); totalRetSize > 0)
+        {
+            if (auto returnTypes = tryGetTypePackAnnotation(scope, ftv->retTypes))
+            {
+                snippet += ": ";
+                bool wrap = totalRetSize != 1;
+                if (wrap)
+                    snippet += "(";
+                snippet += *returnTypes;
+                if (wrap)
+                    snippet += ")";
+            }
+        }
+    }
+
+    snippet += "\n\t$0\nend";
+    return snippet;
 }
 
 static std::pair<std::string, std::string> computeLabelDetailsForFunction(const Luau::AutocompleteEntry& entry, const Luau::FunctionType* ftv)
@@ -579,10 +753,13 @@ std::vector<lsp::CompletionItem> WorkspaceFolder::completion(const lsp::Completi
             return {};
 
         auto newSrc = textDocument->getText();
+        Luau::ParseResult fragmentParseResult;
+        fragmentParseResult.root = sourceModule->root;
+        fragmentParseResult.commentLocations = sourceModule->commentLocations;
+        fragmentParseResult.hotcomments = sourceModule->hotcomments;
         Luau::FragmentContext fragmentContext = {
             newSrc,
-            // TODO: we have to construct a parse result as tryFragmentAutocomplete only accepts this
-            Luau::ParseResult{sourceModule->root},
+            fragmentParseResult,
             frontendOptions,
         };
 
@@ -624,7 +801,8 @@ std::vector<lsp::CompletionItem> WorkspaceFolder::completion(const lsp::Completi
         if (!config.completion.showKeywords && entry.kind == Luau::AutocompleteEntryKind::Keyword)
             continue;
 
-        if (!config.completion.showAnonymousAutofilledFunction && entry.kind == Luau::AutocompleteEntryKind::GeneratedFunction)
+        if ((!config.completion.anonymousAutofilledFunction.enabled || !config.completion.showAnonymousAutofilledFunction) &&
+            entry.kind == Luau::AutocompleteEntryKind::GeneratedFunction)
             continue;
 
         lsp::CompletionItem item;
@@ -652,7 +830,25 @@ std::vector<lsp::CompletionItem> WorkspaceFolder::completion(const lsp::Completi
         item.sortText = sortText(frontend, item.label, item, entry, tags, *platform);
 
         if (entry.kind == Luau::AutocompleteEntryKind::GeneratedFunction)
-            item.insertText = entry.insertText;
+        {
+            if (canUseSnippets(client->capabilities) && entry.type)
+            {
+                if (auto ftv = Luau::get<Luau::FunctionType>(Luau::follow(*entry.type)))
+                {
+                    Luau::ScopePtr scope;
+                    if (localModule)
+                        scope = Luau::findScopeAtPosition(*localModule, position);
+                    item.insertText = buildGeneratedFunctionSnippet(ftv, scope,
+                        config.completion.anonymousAutofilledFunction.addTypeAnnotations,
+                        config.completion.anonymousAutofilledFunction.addTabstopForParameters);
+                    item.insertTextFormat = lsp::InsertTextFormat::Snippet;
+                }
+                else
+                    item.insertText = entry.insertText;
+            }
+            else
+                item.insertText = entry.insertText;
+        }
 
         if (entry.kind == Luau::AutocompleteEntryKind::RequirePath)
         {

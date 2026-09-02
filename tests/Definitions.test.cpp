@@ -2,6 +2,7 @@
 #include "Fixture.h"
 #include "Platform/RobloxPlatform.hpp"
 #include "LuauFileUtils.hpp"
+#include "Luau/Parser.h"
 
 #include <algorithm>
 
@@ -18,7 +19,7 @@ static std::string readRequiredFile(const std::string& path)
 
 TEST_CASE("use_platform_metadata_from_first_registered_definitions_file")
 {
-    Client client;
+    TestClient client;
     auto workspace = WorkspaceFolder(&client, "$TEST_WORKSPACE", Uri(), std::nullopt);
 
     client.definitionsFiles.emplace("@roblox", "./tests/testdata/standard_definitions.d.luau");
@@ -36,7 +37,7 @@ TEST_CASE("use_platform_metadata_from_first_registered_definitions_file")
 
 TEST_CASE("handles_definitions_files_relying_on_mutations")
 {
-    Client client;
+    TestClient client;
     auto workspace = WorkspaceFolder(&client, "$TEST_WORKSPACE", Uri::file(*Luau::FileUtils::getCurrentWorkingDirectory()), std::nullopt);
 
     client.definitionsFiles.emplace("@roblox", "./tests/testdata/standard_definitions.d.luau");
@@ -56,7 +57,7 @@ TEST_CASE("handles_definitions_files_relying_on_mutations")
 
 TEST_CASE("dont_crash_when_mutating_a_definitions_file_that_does_not_contain_expected_state")
 {
-    Client client;
+    TestClient client;
     auto workspace = WorkspaceFolder(&client, "$TEST_WORKSPACE", Uri(), std::nullopt);
 
     client.definitionsFiles.emplace("@roblox", "./tests/testdata/bad_standard_definitions.d.luau");
@@ -68,7 +69,7 @@ TEST_CASE("dont_crash_when_mutating_a_definitions_file_that_does_not_contain_exp
 
 TEST_CASE("support_disabling_global_types")
 {
-    Client client;
+    TestClient client;
     auto workspace = WorkspaceFolder(&client, "$TEST_WORKSPACE", Uri::file(*Luau::FileUtils::getCurrentWorkingDirectory()), std::nullopt);
 
     auto config = defaultTestClientConfiguration();
@@ -96,7 +97,7 @@ TEST_CASE("support_disabling_global_types")
 
 TEST_CASE("support_disabling_methods_in_global_types")
 {
-    Client client;
+    TestClient client;
     auto workspace = WorkspaceFolder(&client, "$TEST_WORKSPACE", Uri::file(*Luau::FileUtils::getCurrentWorkingDirectory()), std::nullopt);
 
     auto config = defaultTestClientConfiguration();
@@ -124,7 +125,7 @@ TEST_CASE("support_disabling_methods_in_global_types")
 
 TEST_CASE("package_name_is_recorded_onto_the_loaded_types")
 {
-    Client client;
+    TestClient client;
     auto workspace = WorkspaceFolder(&client, "$TEST_WORKSPACE", Uri::file(*Luau::FileUtils::getCurrentWorkingDirectory()), std::nullopt);
 
     client.definitionsFiles.emplace("@example", "./tests/testdata/standard_definitions.d.luau");
@@ -153,7 +154,7 @@ TEST_CASE("package_name_is_recorded_onto_the_loaded_types")
 
 TEST_CASE("support_disabling_methods_in_extern_types_globals")
 {
-    Client client;
+    TestClient client;
     auto workspace = WorkspaceFolder(&client, "$TEST_WORKSPACE", Uri::file(*Luau::FileUtils::getCurrentWorkingDirectory()), std::nullopt);
 
     client.definitionsFiles.emplace("@roblox", "./tests/testdata/standard_definitions.d.luau");
@@ -200,7 +201,7 @@ static void checkRiveScriptFixture(const std::string& path)
 {
     ScopedFastFlag sffNewSolver{FFlag::LuauSolverV2, true};
 
-    Client client;
+    TestClient client;
     auto workspace = WorkspaceFolder(&client, "$TEST_WORKSPACE", Uri::file(*Luau::FileUtils::getCurrentWorkingDirectory()), std::nullopt);
     client.definitionsFiles.emplace("@rive", "./extension/definitions/rive-globals.d.luau");
 
@@ -229,6 +230,26 @@ TEST_CASE("rive_definitions_cover_runtime_262_callable_surface")
     checkRiveScriptFixture("tests/testdata/rive_runtime_new_api_surface.luau");
 }
 
+TEST_CASE("rive_definitions_cover_runtime_316_callable_surface")
+{
+    checkRiveScriptFixture("tests/testdata/rive_runtime_316_surface.luau");
+}
+
+TEST_CASE("rive_definitions_cover_runtime_344_layout_surface")
+{
+    checkRiveScriptFixture("tests/testdata/rive_runtime_344_surface.luau");
+}
+
+TEST_CASE("rive_definitions_cover_complete_protocol_surface")
+{
+    checkRiveScriptFixture("tests/testdata/rive_protocol_surface.luau");
+}
+
+TEST_CASE("rive_definitions_cover_stable_editor_file_format_surface")
+{
+    checkRiveScriptFixture("tests/testdata/rive_file_format_surface.luau");
+}
+
 TEST_CASE("rive_definitions_cover_live_editor_reference_parity_surface")
 {
     checkRiveScriptFixture("tests/testdata/rive_editor_reference_parity_surface.luau");
@@ -248,7 +269,7 @@ TEST_CASE("rive_definitions_reject_removed_gpu_shader_api_names")
 {
     ScopedFastFlag sffNewSolver{FFlag::LuauSolverV2, true};
 
-    Client client;
+    TestClient client;
     auto workspace = WorkspaceFolder(&client, "$TEST_WORKSPACE", Uri::file(*Luau::FileUtils::getCurrentWorkingDirectory()), std::nullopt);
     client.definitionsFiles.emplace("@rive", "./extension/definitions/rive-globals.d.luau");
 
@@ -269,11 +290,11 @@ end
     REQUIRE_MESSAGE(result.errors.size() >= 2, "Removed GPU shader API names should not type-check");
 }
 
-TEST_CASE("rive_definitions_reject_retired_and_separate_legacy_surfaces")
+TEST_CASE("rive_definitions_reject_retired_stale_unsupported_and_host_only_surfaces")
 {
     ScopedFastFlag sffNewSolver{FFlag::LuauSolverV2, true};
 
-    Client client;
+    TestClient client;
     auto workspace = WorkspaceFolder(&client, "$TEST_WORKSPACE", Uri::file(*Luau::FileUtils::getCurrentWorkingDirectory()), std::nullopt);
     client.definitionsFiles.emplace("@rive", "./extension/definitions/rive-globals.d.luau");
 
@@ -282,27 +303,23 @@ TEST_CASE("rive_definitions_reject_retired_and_separate_legacy_surfaces")
     workspace.frontend.setLuauSolverMode(Luau::SolverMode::New);
     workspace.isReady = true;
 
-    auto document = newDocument(workspace, "rive_removed_draw_canvas.luau", R"(
---!strict
-local node: Node<{}> = {}
-local _legacy = node.drawCanvas
-
-function checkReportedEvent(context: ListenerContext)
-    local reported = context:asReportedEvent()
-    if reported then
-        local _legacyDelay = reported.delaySeconds
-    end
-end
-)");
+    auto document = newDocument(
+        workspace,
+        "rive_removed_api_surface.luau",
+        readRequiredFile("tests/testdata/rive_removed_api_surface.luau"));
     auto result = workspace.frontend.check(workspace.fileResolver.getModuleName(document));
-    REQUIRE_MESSAGE(result.errors.size() >= 2, "Retired drawCanvas and the legacy-only ReportedEvent.delaySeconds field should not type-check");
+    REQUIRE_MESSAGE(
+        result.errors.size() >= 10,
+        "Retired drawCanvas/Animation.play, stale aggregate gamepad access, "
+        "the legacy-only ReportedEvent field, Blob.asString, unsupported PropertyList helpers, "
+        "and host-only asset classes must not type-check as Luau globals");
 }
 
 TEST_CASE("rive_definitions_cover_hover_and_completion_surface")
 {
     ScopedFastFlag sffNewSolver{FFlag::LuauSolverV2, true};
 
-    Client client;
+    TestClient client;
     auto workspace = WorkspaceFolder(&client, "$TEST_WORKSPACE", Uri::file(*Luau::FileUtils::getCurrentWorkingDirectory()), std::nullopt);
     client.definitionsFiles.emplace("@rive", "./extension/definitions/rive-globals.d.luau");
 
@@ -336,6 +353,66 @@ local value = Vector.|cross3(Vector.xyz(1, 0, 0), Vector.xyz(0, 1, 0))
 
     REQUIRE(hover);
     CHECK(hover->contents.value.find("3D cross product") != std::string::npos);
+
+    auto [formatCompletionSource, formatCompletionPosition] = sourceWithMarker(R"(
+local format: TextFileFormat = { name = "Example", extensions = { "example" } }
+local callback = format.|
+)");
+    auto formatCompletionUri = newDocument(workspace, "rive_file_format_completion.luau", formatCompletionSource);
+    lsp::CompletionParams formatCompletionParams;
+    formatCompletionParams.textDocument = lsp::TextDocumentIdentifier{formatCompletionUri};
+    formatCompletionParams.position = formatCompletionPosition;
+    auto formatCompletions = workspace.completion(formatCompletionParams, nullptr);
+
+    auto highlight = std::find_if(formatCompletions.begin(), formatCompletions.end(), [](const lsp::CompletionItem& item) {
+        return item.label == "highlight";
+    });
+    REQUIRE(highlight != formatCompletions.end());
+    REQUIRE(highlight->documentation);
+    CHECK(highlight->documentation->value.find("highlight tokens") != std::string::npos);
+
+    auto [formatHoverSource, formatHoverPosition] = sourceWithMarker(R"(
+local function readDocument(document: FormatDocument)
+    local text = document.|text
+    return text
+end
+)");
+    auto formatHoverUri = newDocument(workspace, "rive_file_format_hover.luau", formatHoverSource);
+    lsp::HoverParams formatHoverParams;
+    formatHoverParams.textDocument = lsp::TextDocumentIdentifier{formatHoverUri};
+    formatHoverParams.position = formatHoverPosition;
+    auto formatHover = workspace.hover(formatHoverParams, nullptr);
+
+    REQUIRE(formatHover);
+    CHECK(formatHover->contents.value.find("Full document text") != std::string::npos);
+
+    auto [bufferCompletionSource, bufferCompletionPosition] = sourceWithMarker(R"(
+local operation = buffer.|
+)");
+    auto bufferCompletionUri = newDocument(workspace, "rive_buffer_completion.luau", bufferCompletionSource);
+    lsp::CompletionParams bufferCompletionParams;
+    bufferCompletionParams.textDocument = lsp::TextDocumentIdentifier{bufferCompletionUri};
+    bufferCompletionParams.position = bufferCompletionPosition;
+    auto bufferCompletions = workspace.completion(bufferCompletionParams, nullptr);
+
+    auto convert = std::find_if(bufferCompletions.begin(), bufferCompletions.end(), [](const lsp::CompletionItem& item) {
+        return item.label == "convert";
+    });
+    REQUIRE(convert != bufferCompletions.end());
+    REQUIRE(convert->documentation);
+    CHECK(convert->documentation->value.find("numeric elements") != std::string::npos);
+
+    auto [bufferHoverSource, bufferHoverPosition] = sourceWithMarker(R"(
+local value = buffer.|readf16(buffer.create(2), 0)
+)");
+    auto bufferHoverUri = newDocument(workspace, "rive_buffer_hover.luau", bufferHoverSource);
+    lsp::HoverParams bufferHoverParams;
+    bufferHoverParams.textDocument = lsp::TextDocumentIdentifier{bufferHoverUri};
+    bufferHoverParams.position = bufferHoverPosition;
+    auto bufferHover = workspace.hover(bufferHoverParams, nullptr);
+
+    REQUIRE(bufferHover);
+    CHECK(bufferHover->contents.value.find("half-precision") != std::string::npos);
 }
 
 TEST_SUITE_END();

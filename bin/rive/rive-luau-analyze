@@ -2,22 +2,28 @@
 # Rive Luau static analysis — type checking, linting, and diagnostics
 #
 # Usage:
-#   rive-luau-analyze <file-or-directory> [luau-lsp flags...]
+#   rive-luau-analyze [luau-lsp analyze options...] <file-or-directory>...
 #
 # Examples:
 #   rive-luau-analyze myScript.luau
 #   rive-luau-analyze effects/
-#   rive-luau-analyze effects/Glassifier/Glassifier.luau --luaurc /path/to/.luaurc
+#   rive-luau-analyze --luaurc /path/to/.luaurc effects/Glassifier/Glassifier.luau
 #
 # Exit code 0 = no diagnostics; non-zero = diagnostics or analyzer failure
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-LUAU_LSP="${SCRIPT_DIR}/luau-lsp"
+LUAU_LSP="${RIVE_LUAU_LSP_BIN:-${SCRIPT_DIR}/luau-lsp}"
+
+if [ ! -x "${LUAU_LSP}" ] && [ -x "${SCRIPT_DIR}/luau-lsp.exe" ]; then
+    LUAU_LSP="${SCRIPT_DIR}/luau-lsp.exe"
+fi
 
 # Release archives flatten the binary, wrapper, and definitions into one
 # directory. Repository checkouts keep definitions under extension/.
-if [ -f "${SCRIPT_DIR}/rive-globals.d.luau" ]; then
+if [ -n "${RIVE_LUAU_DEFS_FILE:-}" ]; then
+    RIVE_DEFS="${RIVE_LUAU_DEFS_FILE}"
+elif [ -f "${SCRIPT_DIR}/rive-globals.d.luau" ]; then
     RIVE_DEFS="${SCRIPT_DIR}/rive-globals.d.luau"
 else
     RIVE_DEFS="${REPO_DIR}/extension/definitions/rive-globals.d.luau"
@@ -34,7 +40,7 @@ if [ ! -x "${LUAU_LSP}" ]; then
 fi
 
 if [ $# -eq 0 ]; then
-    echo "Usage: rive-luau-analyze <file-or-directory> [luau-lsp flags...]"
+    echo "Usage: rive-luau-analyze [luau-lsp analyze options...] <file-or-directory>..."
     echo ""
     echo "Runs luau-lsp static analysis with Rive type definitions."
     echo "Uses --force-strict-mode for full parity with Rive editor."
@@ -42,7 +48,9 @@ if [ $# -eq 0 ]; then
     echo "Examples:"
     echo "  rive-luau-analyze myScript.luau"
     echo "  rive-luau-analyze effects/"
-    echo "  rive-luau-analyze . --formatter=plain"
+    echo "  rive-luau-analyze --formatter=plain ."
+    echo ""
+    echo "Analyzer options must appear before the first file or directory."
     exit 1
 fi
 
@@ -52,8 +60,15 @@ if [ -z "${ANALYZE_OUTPUT}" ]; then
     exit 1
 fi
 
-cleanup() {
+ACTIONABLE_OUTPUT="$(mktemp "${TMPDIR:-/tmp}/rive-luau-actionable.XXXXXX")"
+if [ -z "${ACTIONABLE_OUTPUT}" ]; then
+    echo "Error: unable to create actionable analyzer output capture" >&2
     rm -f -- "${ANALYZE_OUTPUT}"
+    exit 1
+fi
+
+cleanup() {
+    rm -f -- "${ANALYZE_OUTPUT}" "${ACTIONABLE_OUTPUT}"
 }
 trap cleanup EXIT
 
@@ -64,16 +79,17 @@ trap cleanup EXIT
     "$@" >"${ANALYZE_OUTPUT}" 2>&1
 ANALYZE_STATUS=$?
 
-# luau-lsp currently exits 0 even when analyze emits diagnostics. Replay the
-# complete output, preserve genuine process failures, and make diagnostics
-# actionable to shell/CI callers through exit status 1.
-cat "${ANALYZE_OUTPUT}"
+# The plain formatter currently exits 0 even when it emits diagnostics. Remove
+# the routine definitions-load info line, replay every actionable line, retain
+# genuine process failures, and give diagnostics status 1 for shell/CI callers.
+sed '/^\[INFO\] Loading definitions file: /d' "${ANALYZE_OUTPUT}" >"${ACTIONABLE_OUTPUT}"
+cat "${ACTIONABLE_OUTPUT}"
 
 if [ "${ANALYZE_STATUS}" -ne 0 ]; then
     exit "${ANALYZE_STATUS}"
 fi
 
-if [ -s "${ANALYZE_OUTPUT}" ]; then
+if [ -s "${ACTIONABLE_OUTPUT}" ]; then
     exit 1
 fi
 

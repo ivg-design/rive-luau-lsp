@@ -3,12 +3,13 @@
 #include "Luau/AstQuery.h"
 #include "Luau/Normalize.h"
 #include "Luau/Unifier.h"
-#include "Luau/OverloadResolution.h"
+#include "Luau/OverloadResolver.h"
 #include "LSP/LuauExt.hpp"
 #include "LSP/DocumentationParser.hpp"
 
 LUAU_FASTINT(LuauTypeInferRecursionLimit)
 LUAU_FASTINT(LuauTypeInferIterationLimit)
+LUAU_FASTFLAG(LuauSolverV2)
 
 // Taken from Luau/Autocomplete.cpp
 static bool checkOverloadMatch(Luau::TypePackId subTp, Luau::TypePackId superTp, Luau::NotNull<Luau::Scope> scope, Luau::TypeArena* typeArena,
@@ -97,7 +98,6 @@ std::optional<lsp::SignatureHelp> WorkspaceFolder::signatureHelp(
             break;
         activeParameter++;
     }
-
     auto it = module->astTypes.find(candidate->func);
     if (!it)
         return std::nullopt;
@@ -148,6 +148,15 @@ std::optional<lsp::SignatureHelp> WorkspaceFolder::signatureHelp(
         size_t idx = 0;
         size_t previousParamPos = label.find('('); // start search at start of parameter list, not earlier
 
+        // Use the same ToStringOptions as toStringNamedFunction so that type names (including
+        // module-qualified ones like "second.foo") are resolved identically in both the full label
+        // and each parameter search string.
+        Luau::ToStringOptions typeStringOpts;
+        typeStringOpts.functionTypeArguments = true;
+        typeStringOpts.hideNamedFunctionTypeParameters = false;
+        typeStringOpts.hideTableKind = opts.hideTableKind;
+        typeStringOpts.scope = scope;
+
         for (; it != Luau::end(ftv->argTypes); it++, idx++)
         {
             // If the function has self, and the caller has called as a method (i.e., :), then omit the self parameter
@@ -168,7 +177,7 @@ std::optional<lsp::SignatureHelp> WorkspaceFolder::signatureHelp(
             std::string labelString;
             if (idx < ftv->argNames.size() && ftv->argNames[idx] && ftv->argNames[idx]->name != "_")
                 labelString = ftv->argNames[idx]->name + ": ";
-            labelString += Luau::toString(*it);
+            labelString += Luau::toString(*it, typeStringOpts);
 
             auto position = label.find(labelString, previousParamPos);
             if (position != std::string::npos)
@@ -202,9 +211,9 @@ std::optional<lsp::SignatureHelp> WorkspaceFolder::signatureHelp(
                 std::string labelString = "...: ";
 
                 if (vtp)
-                    labelString += Luau::toString(vtp->ty);
+                    labelString += Luau::toString(vtp->ty, typeStringOpts);
                 else
-                    labelString += Luau::toString(*tp);
+                    labelString += Luau::toString(*tp, typeStringOpts);
 
                 auto position = label.find(labelString, previousParamPos);
                 if (position != std::string::npos)

@@ -50,72 +50,72 @@ multiply = darken, screen = lighten, overlay = contrast boost."
 
 ## CLI Usage (for agents and automation)
 
-The repo includes standalone CLI tools for type checking and static analysis — no VS Code required. Use these from scripts, CI pipelines, or AI coding agents.
+The supported default install is a prebuilt CLI archive from the [GitHub Releases](https://github.com/ivg-design/rive-luau-lsp/releases) page. Choose the matching `rive-luau-cli-*.zip`, extract it, and keep the binary, wrappers, definitions, and documentation in the same directory.
 
-### Quick Start
+Release builds provide CLI archives for Windows x64 (`rive-luau-win64`), Linux x64 (`rive-luau-linux-x86_64`), and macOS Apple Silicon (`rive-luau-macos`). The extension release separately provides native VSIX packages for Windows x64/arm64, Linux x64, and macOS x64/arm64. Build from source when a prebuilt CLI archive does not match the host architecture.
+
+### Release archive quick start
+
+On macOS or Linux:
+
+```bash
+unzip rive-luau-cli-*.zip -d rive-luau-cli
+cd rive-luau-cli
+chmod 755 luau-lsp rive-luau-analyze rive-luau-lsp
+
+./rive-luau-analyze --formatter=plain path/to/script.luau
+./rive-luau-lsp
+```
+
+On Windows, run the binary directly from PowerShell. The extensionless wrappers can also be used from Git Bash.
+
+```powershell
+.\luau-lsp.exe analyze `
+  --definitions=@rive=.\rive-globals.d.luau `
+  --flag:LuauSolverV2=true `
+  --force-strict-mode `
+  path\to\script.luau
+```
+
+`rive-luau-analyze` returns 0 only when the analyzer emits no diagnostics, 1 when diagnostics are present, and the underlying process status when analysis fails. A clean result is static evidence only: it does not execute the script in the Rive editor or runtime and does not prove export, rendering, event, or playback behavior.
+
+### Build a source checkout before using it
+
+A fresh checkout contains source and shell wrappers, but no usable language-server binary. Initialize Luau, apply the tracked Rive patch, and build before running the repository paths:
 
 ```bash
 git clone https://github.com/ivg-design/rive-luau-lsp.git
 cd rive-luau-lsp
+git submodule update --init luau
+git -C luau apply ../patches/luau-rive-mods.patch
 
-# Analyze a single file
-bin/rive/rive-luau-analyze path/to/script.luau
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --target Luau.LanguageServer.CLI -j 4
 
-# Analyze an entire directory
-bin/rive/rive-luau-analyze path/to/effects/
-
-# Start the LSP server (for editor/agent integration via stdio)
-bin/rive/rive-luau-lsp
+./bin/rive/rive-luau-analyze --formatter=plain path/to/script.luau
+./bin/rive/rive-luau-lsp
 ```
 
-These are repository-checkout paths. The macOS and Linux CLI release archives are flat: after extracting one, run `./rive-luau-analyze`. The archive does not contain the convenience LSP wrapper; start its binary with the bundled definitions and docs:
+From another working directory, invoke either source wrapper by absolute path. Each wrapper resolves its binary, definitions, and documentation from its own checkout location rather than from the caller's current directory.
+
+The analyzer accepts one or more files or directories and passes analyzer options to `luau-lsp analyze`. Put every option before the first path; arguments after a path are interpreted as more input paths:
 
 ```bash
-./luau-lsp lsp --definitions=@rive=./rive-globals.d.luau --docs=./luau-api-docs.json --flag:LuauSolverV2=true --force-strict-mode
+./bin/rive/rive-luau-analyze effects/
+./bin/rive/rive-luau-analyze --formatter=plain myScript.luau
 ```
 
-### `rive-luau-analyze` — Static Analysis
+### Direct language-server command
 
-Runs type checking, linting, and diagnostics on Rive Luau files. Automatically loads the complete Rive API type definitions. Exit code 0 means no errors.
+The `rive-luau-lsp` wrapper starts the language server over stdio with the bundled Rive definitions, Luau documentation, SolverV2, and forced strict mode. Configure the wrapper itself as the LSP client command; it adds the `lsp` subcommand. It does not print one-shot diagnostics. An LSP client can invoke the binary directly with the same settings:
 
 ```bash
-# Check a script for type errors
-bin/rive/rive-luau-analyze effects/Glassifier/Glassifier.luau
-
-# Check all scripts in a directory (respects .luaurc if present)
-bin/rive/rive-luau-analyze effects/
-
-# Pass additional luau-lsp flags
-bin/rive/rive-luau-analyze myScript.luau --formatter=plain
+./luau-lsp lsp \
+  --definitions=@rive=./rive-globals.d.luau \
+  --docs=./luau-api-docs.json \
+  --flag:LuauSolverV2=true \
+  --force-strict-mode
 ```
-
-### `rive-luau-lsp` — Language Server
-
-Starts the full language server over stdio with Rive definitions and documentation pre-loaded. Connect from any LSP-compatible client: Neovim, Emacs, Helix, Zed, or an AI agent.
-
-```bash
-# Start LSP server
-bin/rive/rive-luau-lsp
-
-# With additional flags
-bin/rive/rive-luau-lsp --flag:LuauSomeFlag=true
-```
-
-### Agent Integration Example
-
-An AI coding agent can use the analyze tool to validate Rive Luau code:
-
-```bash
-# After generating or modifying a script, validate it:
-result=$(bin/rive/rive-luau-analyze generated_script.luau 2>&1)
-if [ $? -ne 0 ]; then
-    echo "Type errors found:"
-    echo "$result"
-    # Agent can fix errors and retry
-fi
-```
-
----
 
 ## AI Agent Skills
 
@@ -182,11 +182,21 @@ Point your editor's LSP configuration to the language server:
 
 ```bash
 git clone https://github.com/ivg-design/rive-luau-lsp.git
-cd rive-luau-lsp/extension
-npm install
-npx @vscode/vsce package --allow-missing-repository
+cd rive-luau-lsp
+git submodule update --init luau
+git -C luau apply ../patches/luau-rive-mods.patch
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --target Luau.LanguageServer.CLI -j 4
+mkdir -p extension/bin
+cp build/luau-lsp extension/bin/luau-lsp
+chmod 755 extension/bin/luau-lsp
+npm ci --prefix extension
+cd extension
+npx @vscode/vsce package
 code --install-extension rive-luau-*.vsix
 ```
+
+On Windows, copy `build/Release/luau-lsp.exe` into `extension/bin/` before packaging.
 
 ---
 
@@ -202,20 +212,26 @@ A modified build of [luau-lsp](https://github.com/JohnnyMorganz/luau-lsp) by Joh
 
 ### Type Definitions (`extension/definitions/rive-globals.d.luau`)
 
-Complete Rive scripting API type definitions with educational documentation covering:
+The callable runtime tier targets released Rive Web 2.41.1 / C++ `runtime-v0.1.344`, which embeds the `rive_0_734` Luau fork. The LSP uses Luau 0.736 for parsing and type checking; that does not upgrade the target runtime. `Layout.resize(self, size, displayScale)` now includes the released presenting-surface scale; existing two-parameter Luau callbacks remain runtime-compatible. `FileFormat` and `TextFileFormat` are current stable Editor protocols. Source-backed GPU declarations remain early access and require target-Editor verification. Types labeled **Coming soon** remain reference-only.
 
 | Category | Types |
 |----------|-------|
-| **Core** | `Vector`, `Color`, `Mat2D`, `Mat4`, `Promise` |
-| **Drawing** | `Path`, `Paint`, `Renderer`, `Gradient`, `PathMeasure`, `ContourMeasure`, `ImageSampler`, `Canvas`, `GPUCanvas` |
+| **Core** | `Vector`, `Color`, `Mat2D`, `Mat4`, `Promise`, runtime buffer half-float/stride/conversion helpers |
+| **Drawing** | `Path`, `PathCommand`, `PathData`, `Paint`, `Renderer`, `Gradient`, `PathMeasure`, `ContourMeasure`, `ImageSampler`, `Canvas`, `GPUCanvas` |
 | **GPU Shaders** | `Shader`, `GPUBuffer`, `GPUTexture`, `GPUTextureView`, `GPUSampler`, `GPUPipeline`, `GPUBindGroupLayout`, `GPUBindGroup`, `GPURenderPass` |
-| **Scene** | `NodeData`, `NodeReadData`, `Artboard`, `Animation` |
+| **Scene** | `NodeData`, `NodeReadData`, `Artboard<T>`, `Animation` |
 | **Data Binding** | `ViewModel`, `Property<T>`, `PropertyImage`, `PropertyList`, `DataContext`, `Context`, `Data` namespace |
-| **Assets** | `Image`, `Blob`, `AudioSource`, `AudioSound`, `Audio` |
-| **Script Protocols** | `Node<T>`, `Layout<T>`, `Converter<T,I,O>`, `PathEffect<T>`, `ListenerAction<T>`, `TransitionCondition<T>`, `Interpolator<T>` |
+| **Assets** | `Image`, `Blob`, `Font`, `AudioSource`, `AudioSound`, `Audio` |
+| **Script Protocols** | `Node<T>`, `Layout<T>`, `Converter<T,I,O>`, `PathEffect<T>`, `ListenerAction<T>`, `TransitionCondition<T>`, `Interpolator<T>`, `FileFormat`, `TextFileFormat` |
 | **Data Values** | `DataValue`, `DataValueNumber`, `DataValueString`, `DataValueBoolean`, `DataValueColor` |
-| **Events** | `PointerEvent`, `KeyboardInvocation`, `TextInputInvocation`, `FocusInvocation`, `GamepadInvocation` |
-| **Testing** | `Tester`, `Expectation` |
+| **Events** | `PointerEvent`, `KeyboardEvent`, `TextInput`, `FocusEvent`, `ReportedEvent`, `ViewModelChange`, `NoneEvent`, `GamepadConnected`, `GamepadEvent`, `GamepadDisconnected`, `ListenerContext` |
+| **File-format support** | `FormatDocument`, `FormatView`, `FormatSurface`, scopes, tokens, diagnostics, completions, hover, editor theme/scroll/context callbacks |
+| **Testing** | `Tests`, `Tester`, `Expect`, `Expectation` |
+
+Rive Script Modules are ordinary Luau modules loaded with `require("name")`.
+The standard-platform resolver walks ancestor directories for bare module paths,
+matching Rive workspace behavior. Host-generated or serialized asset identifiers
+belong to file metadata; they are not source-level module names or LSP symbols.
 
 ### Standard Library Documentation (`definitions/luau-api-docs.json`)
 
@@ -283,33 +299,43 @@ rive-luau-lsp/
 
 ## Building from Source
 
+A source checkout must build the native language-server binary before the CLI wrappers or extension can run.
+
 ### Prerequisites
 
-- Node.js 18+
-- npm
-- VS Code 1.80+
+- CMake and a C++20 compiler
+- Node.js 20 and npm for VSIX packaging
+- VS Code 1.82+ for local extension installation
 
-### Build the Extension
+### Build and test the language server
 
 ```bash
+git clone https://github.com/ivg-design/rive-luau-lsp.git
+cd rive-luau-lsp
+git submodule update --init luau
+git -C luau apply ../patches/luau-rive-mods.patch
+
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --target Luau.LanguageServer.CLI Luau.LanguageServer.Test -j 4
+./build/Luau.LanguageServer.Test
+```
+
+The repository wrappers automatically fall back to `build/luau-lsp` after that build.
+
+### Package a local VSIX
+
+Copy the native binary for the host platform into the extension before packaging it:
+
+```bash
+mkdir -p extension/bin
+cp build/luau-lsp extension/bin/luau-lsp
+chmod 755 extension/bin/luau-lsp
+npm ci --prefix extension
 cd extension
-npm install
-npx @vscode/vsce package --allow-missing-repository
+npx @vscode/vsce package
 ```
 
-### Build the Language Server (optional)
-
-To rebuild the language server binary from source, clone the modified luau-lsp fork and build with CMake:
-
-```bash
-git clone https://github.com/ivg-design/luau-lsp.git
-cd luau-lsp
-mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release
-cmake --build . --target luau-lsp -j
-```
-
-Copy the resulting binary to `extension/bin/luau-lsp`.
+On Windows, copy `build/Release/luau-lsp.exe` to `extension/bin/luau-lsp.exe` instead.
 
 ---
 

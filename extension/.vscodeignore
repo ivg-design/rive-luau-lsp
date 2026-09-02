@@ -2,6 +2,7 @@
 .gitignore
 *.vsix
 CLAUDE.md
+scripts/**
 
 # Exclude all node_modules test/doc files
 node_modules/**/test/**

@@ -8,115 +8,160 @@ on:
 permissions:
   contents: write
 
-env:
-  MACOSX_DEPLOYMENT_TARGET: "10.15"
-
 jobs:
   dist:
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: windows-latest
-            artifact-name: rive-luau-win64
-            code-target: [win32-x64, win32-arm64]
+          - os: windows-2025
+            artifact-name: win32-x64
+            cli-artifact-name: rive-luau-win64
+            code-target: win32-x64
+            binary-path: build/Release/luau-lsp.exe
+            test-path: build/Release/Luau.LanguageServer.Test.exe
+            extension-binary: luau-lsp.exe
+            cmake-extra: ""
+          - os: windows-11-arm
+            artifact-name: win32-arm64
+            cli-artifact-name: ""
+            code-target: win32-arm64
+            binary-path: build/Release/luau-lsp.exe
+            test-path: build/Release/Luau.LanguageServer.Test.exe
+            extension-binary: luau-lsp.exe
+            cmake-extra: ""
           - os: ubuntu-22.04
-            artifact-name: rive-luau-linux-x86_64
-            code-target: [linux-x64]
-          - os: macos-latest
-            artifact-name: rive-luau-macos
-            code-target: [darwin-x64, darwin-arm64]
+            artifact-name: linux-x64
+            cli-artifact-name: rive-luau-linux-x86_64
+            code-target: linux-x64
+            binary-path: build/luau-lsp
+            test-path: build/Luau.LanguageServer.Test
+            extension-binary: luau-lsp
+            cmake-extra: ""
+          - os: macos-15-intel
+            artifact-name: darwin-x64
+            cli-artifact-name: ""
+            code-target: darwin-x64
+            binary-path: build/luau-lsp
+            test-path: build/Luau.LanguageServer.Test
+            extension-binary: luau-lsp
+            cmake-extra: -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15
+          - os: macos-15
+            artifact-name: darwin-arm64
+            cli-artifact-name: rive-luau-macos
+            code-target: darwin-arm64
+            binary-path: build/luau-lsp
+            test-path: build/Luau.LanguageServer.Test
+            extension-binary: luau-lsp
+            cmake-extra: -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
 
     name: ${{ matrix.artifact-name }}
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
-      # Only init the luau submodule (skip extern/sentry-native which has
-      # rate-limited chromium deps we don't need)
-      - name: Init luau submodule
+      - name: Initialize Luau submodule
         run: git submodule update --init --recursive luau
 
-      # Apply Rive patches to the Luau submodule (ImportedTypeNamespace fallback)
-      - name: Apply Luau patches
-        run: cd luau && git apply ../patches/luau-rive-mods.patch
+      - name: Apply Rive Luau patch
+        shell: bash
+        run: git -C luau apply ../patches/luau-rive-mods.patch
 
       - uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      # Build the C++ language server from source
-      - name: Build luau-lsp
-        run: |
-          mkdir build && cd build
-          cmake .. -DCMAKE_BUILD_TYPE=Release -DLSP_STATIC_CRT:BOOL=ON
-          cmake --build . --config Release --target Luau.LanguageServer.CLI -j 3
-
-      # Copy the platform binary into the extension
-      - name: Copy binary into extension
+      - name: Verify tag and extension versions agree
+        if: startsWith(github.ref, 'refs/tags/rive-v')
         shell: bash
         run: |
-          mkdir -p extension/bin
-          if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            cp build/Release/luau-lsp.exe extension/bin/luau-lsp.exe
-          else
-            cp build/luau-lsp extension/bin/luau-lsp
-            chmod 755 extension/bin/luau-lsp
-          fi
+          tag_version="${GITHUB_REF_NAME#rive-v}"
+          package_version="$(node -p "require('./extension/package.json').version")"
+          lock_version="$(node -p "require('./extension/package-lock.json').version")"
+          test "$tag_version" = "$package_version"
+          test "$tag_version" = "$lock_version"
 
-      # Also copy into bin/rive/ for CLI users
-      - name: Copy binary for CLI
+      - name: Configure and build language server and tests
         shell: bash
         run: |
-          mkdir -p bin/rive
-          if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            cp build/Release/luau-lsp.exe bin/rive/luau-lsp.exe
-          else
-            cp build/luau-lsp bin/rive/luau-lsp
-            chmod 755 bin/rive/luau-lsp
-          fi
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DLSP_STATIC_CRT:BOOL=ON ${{ matrix.cmake-extra }}
+          cmake --build build --config Release --target Luau.LanguageServer.CLI Luau.LanguageServer.Test -j 3
+
+      - name: Run focused and full C++ test matrices
+        shell: bash
+        run: |
+          ${{ matrix.test-path }} --test-case='rive_*'
+          ${{ matrix.test-path }}
+          ${{ matrix.test-path }} --new-solver
+          ${{ matrix.test-path }} --fflags=true
+
+      - name: Run wrapper exit-behavior tests
+        shell: bash
+        run: ./tests/rive-analyzer-wrapper.test.sh
+
+      - name: Copy native binary into extension and CLI layout
+        shell: bash
+        run: |
+          mkdir -p extension/bin bin/rive
+          cp "${{ matrix.binary-path }}" "extension/bin/${{ matrix.extension-binary }}"
+          cp "${{ matrix.binary-path }}" "bin/rive/${{ matrix.extension-binary }}"
+          chmod 755 "extension/bin/${{ matrix.extension-binary }}" "bin/rive/${{ matrix.extension-binary }}"
+
+      - name: Run strict Rive declaration fixtures
+        shell: bash
+        run: |
+          for fixture in \
+            tests/testdata/rive_confetti_node.luau \
+            tests/testdata/rive_runtime_surface.luau \
+            tests/testdata/rive_runtime_new_api_surface.luau \
+            tests/testdata/rive_runtime_316_surface.luau \
+            tests/testdata/rive_runtime_344_surface.luau \
+            tests/testdata/rive_protocol_surface.luau \
+            tests/testdata/rive_editor_reference_parity_surface.luau \
+            tests/testdata/rive_gpu_shader_surface.luau \
+            tests/testdata/rive_test_protocol_surface.luau \
+            tests/testdata/rive_file_format_surface.luau
+          do
+            ./bin/rive/rive-luau-analyze --formatter=plain "$fixture"
+          done
 
       - name: Install extension dependencies
         working-directory: extension
         run: npm ci
 
-      # Publish per-platform VSIX to VS Code Marketplace via Azure PAT
-      - name: Publish to VS Code Marketplace
+      - name: Package VSIX
         working-directory: extension
-        run: npx @vscode/vsce publish --pat ${{ secrets.VSCE_PAT }} --target ${{ join(matrix.code-target, ' ') }}
+        run: npx @vscode/vsce package --target ${{ matrix.code-target }} -o ../rive-luau-${{ matrix.code-target }}.vsix
 
-      # Package VSIX files for GitHub Releases (manual install)
-      - name: Package VSIX files
+      - name: Publish target to VS Code Marketplace
+        if: startsWith(github.ref, 'refs/tags/rive-v')
         working-directory: extension
-        shell: bash
-        run: |
-          targets='${{ join(matrix.code-target, ' ') }}'
-          for target in $targets; do
-            npx @vscode/vsce package --target $target -o ../rive-luau-${target}.vsix
-          done
+        run: npx @vscode/vsce publish --pat ${{ secrets.VSCE_PAT }} --target ${{ matrix.code-target }}
 
-      # Create CLI archive for GitHub Releases
       - name: Create CLI archive
+        if: matrix.cli-artifact-name != ''
         shell: bash
         run: |
           mkdir -p dist
-          if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            cp build/Release/luau-lsp.exe dist/luau-lsp.exe
-            cp extension/definitions/rive-globals.d.luau dist/
-            cp extension/definitions/luau-api-docs.json dist/
-            cd dist && 7z a ../rive-luau-cli-${{ matrix.artifact-name }}.zip *
+          cp "${{ matrix.binary-path }}" "dist/${{ matrix.extension-binary }}"
+          cp bin/rive/rive-luau-analyze bin/rive/rive-luau-lsp dist/
+          cp extension/definitions/rive-globals.d.luau dist/
+          cp extension/definitions/luau-api-docs.json dist/
+          cp README.md CHANGELOG.md LICENSE ATTRIBUTION.md dist/
+          if [[ "${{ matrix.os }}" == windows-* ]]; then
+            cd dist && 7z a "../rive-luau-cli-${{ matrix.cli-artifact-name }}.zip" '*'
           else
-            cp build/luau-lsp dist/
-            cp bin/rive/rive-luau-analyze dist/
-            cp extension/definitions/rive-globals.d.luau dist/
-            cp extension/definitions/luau-api-docs.json dist/
-            cd dist && zip -r ../rive-luau-cli-${{ matrix.artifact-name }}.zip *
+            cd dist && zip -r "../rive-luau-cli-${{ matrix.cli-artifact-name }}.zip" .
           fi
 
-      - name: Upload to GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Upload VSIX to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/rive-v')
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            rive-luau-cli-${{ matrix.artifact-name }}.zip
-            rive-luau-*.vsix
+          files: rive-luau-${{ matrix.code-target }}.vsix
+
+      - name: Upload CLI archive to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/rive-v') && matrix.cli-artifact-name != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          files: rive-luau-cli-${{ matrix.cli-artifact-name }}.zip

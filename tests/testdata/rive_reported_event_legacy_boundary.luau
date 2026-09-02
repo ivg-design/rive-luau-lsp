@@ -1,6 +1,7 @@
 -- Negative acceptance fixture: the current Editor ReportedEvent is empty.
--- ReportedEventInvocation.delaySeconds remains a separately nameable legacy
--- type, but ListenerContext:asReportedEvent() does not return that type.
+-- Runtime-v0.1.316 ReportedEventInvocation.delaySeconds remains separately
+-- nameable, but ListenerContext:asReportedEvent() returns the current Editor
+-- ReportedEvent type rather than that runtime dispatch wrapper.
 local context: ListenerContext = nil :: any
 local reported = context:asReportedEvent()
 if reported then
