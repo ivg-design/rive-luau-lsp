@@ -3187,6 +3187,12 @@ export type EditorScroll = {
 --- Edit time context handed to FileFormat views. Everything it returns is
 --- either immutable or a private instance; nothing reaches back into the
 --- open file's live state.
+---
+--- **Editor rollout note:** public Editor documentation also lists `shader`,
+--- `canvas`, `gpuCanvas`, `features`, and `decodeImage` here. They remain
+--- intentionally undeclared until target-Editor or shipped-source evidence
+--- verifies that file-format views can call them. Runtime `Context` members
+--- with the same names do not establish Editor availability.
 declare extern type EditorContext with
 
     --- Looks up an image asset by name, or nil when missing.

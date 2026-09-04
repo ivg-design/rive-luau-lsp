@@ -2,6 +2,19 @@
 
 All notable changes to the Rive Luau LSP extension will be documented in this file.
 
+## [1.2.1] - 2026-09-04
+
+### Changed - Web 2.42 compatibility and agent tooling
+
+- Update current-facing compatibility labels to Rive Web 2.42.0 while retaining the verified callable C++ `runtime-v0.1.344` boundary. Historical release entries remain unchanged.
+- Correct the packaged Codex skill metadata to invoke `$rive-luau-lsp` explicitly and use the real `rive-luau-analyze` CLI workflow; remove the nonexistent `rive_luau_typecheck` function dependency and unsupported permissions claim.
+- Audit the packaged Claude and Codex skills, source-checkout commands, release-archive commands, language-server launch examples, and wrapper help so they consistently use the shipped `rive-luau-analyze` and `rive-luau-lsp` commands with analyzer options before paths.
+- Document the `EditorContext` rollout boundary: public Editor documentation lists `shader`, `canvas`, `gpuCanvas`, `features`, and `decodeImage`, but 1.2.1 does not promote them into the callable file-format declaration surface without target-Editor or shipped-source verification. Runtime `Context` declarations remain unchanged.
+
+### Tests
+
+- Re-run the focused and complete C++ suites, SolverV2 and all-feature-flag suites, wrapper behavior tests, strict Rive declaration fixtures, skill-package validation, package-input checks, and local macOS arm64 VSIX/CLI packaging.
+
 ## [1.2.0] - 2026-09-01
 
 ### Changed - canonical Web 2.41.1 / runtime-v0.1.344 toolchain

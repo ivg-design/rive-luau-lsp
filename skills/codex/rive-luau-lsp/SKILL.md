@@ -1,11 +1,11 @@
 ---
 name: rive-luau-lsp
-description: Rive Luau type checker and language server for validating Rive scripting API usage. Triggers when writing, editing, debugging, or validating Rive Luau scripts. Targets Rive Web 2.41.1 and runtime-v0.1.344, with separately tiered Editor and source-backed surfaces.
+description: Rive Luau type checker and language server for validating Rive scripting API usage. Triggers when writing, editing, debugging, or validating Rive Luau scripts. Targets Rive Web 2.42.0 and runtime-v0.1.344, with separately tiered Editor and source-backed surfaces.
 ---
 
 # Rive Luau LSP
 
-Use the canonical Rive Luau type checker for diagnostics. Its released callable target is Rive Web 2.41.1 / runtime-v0.1.344. Later canary signatures are not part of that target.
+Use the canonical Rive Luau type checker for diagnostics. Its released callable target is Rive Web 2.42.0 / runtime-v0.1.344. Later canary signatures are not part of that target.
 
 Use a prebuilt CLI release archive by default. A fresh repository checkout has no native binary: initialize the `luau` submodule, apply `patches/luau-rive-mods.patch`, and build `Luau.LanguageServer.CLI` before using the repository wrapper.
 
@@ -60,8 +60,9 @@ In a release archive, read `rive-globals.d.luau`. In a source checkout, read `ex
 
 Use these evidence tiers when making API claims:
 
-- **Released runtime:** callable wrappers verified against Web 2.41.1 / runtime-v0.1.344. That runtime embeds the `rive_0_734` Luau fork. The LSP's Luau 0.736 parser and type checker do not upgrade the target runtime. `Layout.resize` receives `(size, displayScale)`; existing two-parameter Luau callbacks ignore the extra argument and remain runtime-compatible.
+- **Released runtime:** callable wrappers verified against Web 2.42.0 / runtime-v0.1.344. That runtime embeds the `rive_0_734` Luau fork. The LSP's Luau 0.736 parser and type checker do not upgrade the target runtime. `Layout.resize` receives `(size, displayScale)`; existing two-parameter Luau callbacks ignore the extra argument and remain runtime-compatible.
 - **Current Editor protocols:** `FileFormat` and `TextFileFormat`, including document, view, surface, token, diagnostic, completion, and hover support, match the current Editor scripting reference. Verify behavior in the target Editor.
+- **EditorContext rollout errata:** public Editor documentation lists `shader`, `canvas`, `gpuCanvas`, `features`, and `decodeImage` on `EditorContext`, but those methods are intentionally absent from the shipped declaration surface because target-Editor or shipped-source verification is not yet recorded. Do not call them from `FileFormat` views until that evidence promotes them into `EditorContext`; similarly named runtime `Context` methods do not prove Editor availability.
 - **Source-backed early access:** GPU declarations are backed by released runtime wrappers and local public Rive scripting docs, but a declaration does not prove that every Editor build exposes the feature. Use only members present in the declarations and the target Editor documentation.
 - **Coming soon or canary:** annotated reference-only types are not runtime proof. Do not promote later source signatures without released runtime and public Luau/Editor evidence.
 
