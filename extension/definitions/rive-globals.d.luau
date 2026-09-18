@@ -11,7 +11,7 @@
 -- =============================================================================
 
 --- Luau's standard buffer library plus the numeric conversion helpers that
---- runtime-v0.1.344 installs on the same global table. The standard members
+--- runtime-v0.1.384 installs on the same global table. The standard members
 --- are repeated here because a definitions-file declaration replaces the
 --- embedded table rather than merging with it.
 declare buffer: {
@@ -1492,7 +1492,7 @@ export type NoneInvocation = NoneEvent
 --- `is...()` guard before reading a payload through the matching `as...()`
 --- accessor.
 --- The current Editor reference labels ListenerContext Coming soon, while
---- runtime-v0.1.344 supplies the event-specific dispatch wrappers below.
+--- runtime-v0.1.384 supplies the event-specific dispatch wrappers below.
 declare extern type ListenerContext with
     --- True when this listener action was triggered by a pointer event.
     function isPointerEvent(self): boolean
@@ -1712,7 +1712,7 @@ export type PropertyEnum = Property<string> & {
 --- ```
 declare extern type ViewModel with
     --- Name of this ViewModel definition. The current Editor reference marks
-    --- this field Coming soon; runtime-v0.1.344 does not expose it as a
+    --- this field Coming soon; runtime-v0.1.384 does not expose it as a
     --- dedicated property, so analyzer acceptance is not runtime proof.
     name: string
     --- Get a number property by name. Returns nil if not found.
@@ -2079,7 +2079,7 @@ export type GPUPipelineDesc = {
 export type GPUBindGroupLayoutDesc = {
     shader: Shader,
     --- Optional separate shader carrying the fragment stage. Accepted
-    --- runtime-v0.1.344 merges its binding map with `shader`.
+    --- runtime-v0.1.384 merges its binding map with `shader`.
     fragment: Shader?,
     groupIndex: number,
     dynamicUBOs: { number }?,
@@ -2294,7 +2294,7 @@ end
 declare extern type Context with
     --- Log through the current Editor host. Use dot-call syntax:
     --- `context.log("message")`. The installed Editor reference exposes this
-    --- on both script backends; released runtime-v0.1.344 source does not make
+    --- on both script backends; released runtime-v0.1.384 source does not make
     --- a standalone Luau runtime claim for it.
     log: (message: string) -> ()
     --- Get the ViewModel bound to the artboard this script is on.
@@ -2420,7 +2420,7 @@ declare ImageSampler: ((wrapX: ImageWrap, wrapY: ImageWrap, filter: ImageFilter)
 --- local b = context:blob("config")
 --- if b then
 ---     print(b.name, b.size, "bytes")
----     -- Empty blobs have nil data in runtime-v0.1.344.
+---     -- Empty blobs have nil data in runtime-v0.1.384.
 ---     if b.data then
 ---         print(buffer.len(b.data))
 ---     end
@@ -2810,13 +2810,13 @@ export type Input<T> = T
 --- **A value your script provides** that the Editor can type-check.
 ---
 --- The current Editor reference marks Output Coming soon, and
---- runtime-v0.1.344 has no distinct Output binding. Keep it as an annotation
+--- runtime-v0.1.384 has no distinct Output binding. Keep it as an annotation
 --- surface without treating analyzer-clean output as execution evidence.
 ---
 --- **Example:**
 --- ```lua
 --- type PlannedBindings = {
----     -- Type-only placeholder; runtime-v0.1.344 does not bind this field.
+---     -- Type-only placeholder; runtime-v0.1.384 does not bind this field.
 ---     result: Output<number>,
 --- }
 --- ```
@@ -2906,7 +2906,7 @@ export type Node<T> = T & {
 --- - `resize(self, size, displayScale)` — optional; called when the layout
 ---   size or presenting-surface scale changes
 ---
---- Released runtime-v0.1.344 passes device pixels per layout point as
+--- Released runtime-v0.1.384 passes device pixels per layout point as
 --- `displayScale`. Existing two-parameter Luau callbacks remain compatible:
 --- Luau ignores the additional argument when the function does not declare it.
 ---
@@ -3044,7 +3044,7 @@ export type TransitionCondition<T> = T & {
 ---
 --- `transform()` remaps the normalized factor before interpolation. Use
 --- `transformValue()` when the interpolation itself needs custom behavior.
---- If either method is omitted, runtime-v0.1.344 falls back to linear
+--- If either method is omitted, runtime-v0.1.384 falls back to linear
 --- interpolation. The current Editor reference lists both methods as required;
 --- this declaration follows the released runtime's callable fallback behavior.
 export type Interpolator<T> = T & {

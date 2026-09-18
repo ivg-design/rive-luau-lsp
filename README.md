@@ -229,7 +229,7 @@ A modified build of [luau-lsp](https://github.com/JohnnyMorganz/luau-lsp) by Joh
 
 ### Type Definitions (`extension/definitions/rive-globals.d.luau`)
 
-The callable runtime tier targets released Rive Web 2.42.0 / C++ `runtime-v0.1.344`, which embeds the `rive_0_734` Luau fork. The LSP uses Luau 0.736 for parsing and type checking; that does not upgrade the target runtime. `Layout.resize(self, size, displayScale)` now includes the released presenting-surface scale; existing two-parameter Luau callbacks remain runtime-compatible. `FileFormat` and `TextFileFormat` are current stable Editor protocols. Source-backed GPU declarations remain early access and require target-Editor verification. Types labeled **Coming soon** remain reference-only.
+The callable runtime tier targets released Rive Web 2.42.1 / C++ `runtime-v0.1.384`, which embeds the `rive_0_734` Luau fork. The LSP uses Luau 0.736 for parsing and type checking; that does not upgrade the target runtime. `Layout.resize(self, size, displayScale)` now includes the released presenting-surface scale; existing two-parameter Luau callbacks remain runtime-compatible. `FileFormat` and `TextFileFormat` are current stable Editor protocols. Source-backed GPU declarations remain early access and require target-Editor verification. Types labeled **Coming soon** remain reference-only.
 
 | Category | Types |
 |----------|-------|
@@ -252,7 +252,7 @@ belong to file metadata; they are not source-level module names or LSP symbols.
 
 #### EditorContext rollout errata
 
-Rive's public [EditorContext documentation](https://rive.app/docs/scripting/api-reference/file-format/editor-context) currently lists `shader(name)`, `canvas(...)`, `gpuCanvas(...)`, `features()`, and `decodeImage(data)`. Rive Luau LSP 1.2.1 intentionally does not declare those five methods for file-format views because target-Editor or shipped-source verification has not yet established them as callable there. Their presence on runtime `Context` is separate evidence and does not establish Editor availability. Until that verification exists, use only the `EditorContext` members present in `extension/definitions/rive-globals.d.luau`.
+Rive's public [EditorContext documentation](https://rive.app/docs/scripting/api-reference/file-format/editor-context) currently lists `shader(name)`, `canvas(...)`, `gpuCanvas(...)`, `features()`, and `decodeImage(data)`. Rive Luau LSP 1.2.2 intentionally does not declare those five methods for file-format views because target-Editor or shipped-source verification has not yet established them as callable there. Their presence on runtime `Context` is separate evidence and does not establish Editor availability. Until that verification exists, use only the `EditorContext` members present in `extension/definitions/rive-globals.d.luau`.
 
 ### Standard Library Documentation (`definitions/luau-api-docs.json`)
 

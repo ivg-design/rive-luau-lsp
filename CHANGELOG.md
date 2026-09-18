@@ -2,6 +2,20 @@
 
 All notable changes to the Rive Luau LSP extension will be documented in this file.
 
+## [1.2.2] - 2026-09-14
+
+### Changed - Web 2.42.1 / runtime-v0.1.384 compatibility rebaseline
+
+- Update current-facing compatibility labels to Rive Web 2.42.1 and C++ `runtime-v0.1.384` (extension description, README, packaged skill descriptions and evidence-tier notes). Historical release entries remain unchanged.
+- Verified against the exact upstream `d619bc2a..45d4d01d` runtime diff (`include/rive/lua`, `src/lua`, `src/scripted`, `dev/defs/scripted`, `tests/unit_tests/runtime/scripting`): no public Luau callable signature — method, property, type, overload, optionality, indexer, atom, or protocol callback — was added, removed, or changed. The six touched files (`rive_lua_libs.hpp`/`.cpp`, `lua_gpu.cpp`, `lua_image_decode.cpp`, `scripted_data_converter.cpp`, `scripting_context_test.cpp`) are host-embedding C++ only: nested canvas/GPU render-pass lifetime tracking, a VS Code Luau script debugger hook (`onModuleLoaded`/`onModuleError`), a `decodeImage` WASM-memory-growth fix, and one internal `DataBindContainer` refcount fix. None cross the Luau-visible boundary.
+- Confirmed the runtime's embedded Luau fork pin (`scripting/premake5.lua`: `dependency.github('luigi-rosso/luau', 'rive_0_734')`) is byte-identical at `runtime-v0.1.344`, `runtime-v0.1.384`, and the `runtime-v0.1.399` canary boundary — the fork has not moved, so no Luau builtin surface (buffer helpers, vector, etc.) changed and no declaration or fixture update was required for that reason.
+- Reconciled all 13 runtime-v0.1.344 mentions in `rive-globals.d.luau` against the v0.1.384 source: 10 comments describing the current callable tier (buffer helper installation, `ListenerContext` dispatch wrappers, `ViewModel.name`, `GPUBindGroupLayoutDesc.fragment` merge, `Context.log`, `Blob.data`, `Output` binding x2, `Layout.resize` displayScale, `Interpolator` fallback) now read `runtime-v0.1.384`; 3 historical confirmation citations (`FocusEvent` wrapper, `ReportedEventInvocation` payload, `AudioSource.duration`) stay dated to `runtime-v0.1.344` because that is when each was verified and all remain true unchanged at `runtime-v0.1.384`. Refreshed the matching negative-fixture header comment in `tests/testdata/rive_removed_api_surface.luau`.
+- Reviewed RFP handoff findings RIVE-0001 through RIVE-0013 individually: all are `no-impact` for this LSP (serialization/import/runtime-behavior/web-api/build-only changes with no Luau-callable surface, or — for RIVE-0012 — canary evidence ahead of the released `v0.1.384` boundary that this fork does not track). No new positive or negative fixture was required.
+
+### Tests
+
+- Re-run the focused and complete C++ suites, SolverV2 and all-feature-flag suites, and the strict Rive declaration fixtures (all previously-passing plus the four release-gate fixtures) against the rebuilt CLI, plus a local macOS arm64 VSIX/CLI packaging pass. No regressions; no new fixtures needed since no callable surface changed.
+
 ## [1.2.1] - 2026-09-04
 
 ### Changed - Web 2.42 compatibility and agent tooling

@@ -1,6 +1,6 @@
 --!strict
 -- Negative acceptance fixture for retired, stale, unsupported, and host-only
--- names at the runtime-v0.1.344 target.
+-- names at the runtime-v0.1.384 target.
 local node: Node<{}> = {}
 local _legacy = node.drawCanvas
 
